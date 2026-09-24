@@ -1,5 +1,296 @@
 const form = document.getElementById('meal-form');
 const resultPanel = document.getElementById('result-panel');
+const bookmarksList = document.getElementById('bookmarks-list');
+const clearBookmarksButton = document.getElementById('clear-bookmarks-btn');
+const openBookmarksButton = document.getElementById('open-bookmarks-btn');
+const closeBookmarksButton = document.getElementById('close-bookmarks-btn');
+const bookmarkCount = document.getElementById('bookmark-count');
+const plannerView = document.querySelector('.content');
+const bookmarksPage = document.getElementById('bookmarks-page');
+const shoppingPage = document.getElementById('shopping-page');
+const historyPage = document.getElementById('history-page');
+const openShoppingButton = document.getElementById('open-shopping-btn');
+const openHistoryButton = document.getElementById('open-history-btn');
+const closeShoppingButton = document.getElementById('close-shopping-btn');
+const closeHistoryButton = document.getElementById('close-history-btn');
+const shoppingList = document.getElementById('shopping-list');
+const historyList = document.getElementById('history-list');
+const clearHistoryButton = document.getElementById('clear-history-btn');
+const historyCount = document.getElementById('history-count');
+const mealDetailPage = document.getElementById('meal-detail-page');
+const mealDetailContent = document.getElementById('meal-detail-content');
+const closeMealDetailButton = document.getElementById('close-meal-detail-btn');
+const fridgePage = document.getElementById('fridge-page');
+const openFridgeButton = document.getElementById('open-fridge-btn');
+const closeFridgeButton = document.getElementById('close-fridge-btn');
+const fridgeIngredients = document.getElementById('fridge-ingredients');
+const otherFridgeButton = document.getElementById('other-fridge-btn');
+const fridgeOtherForm = document.getElementById('fridge-other-form');
+const fridgeOtherInput = document.getElementById('fridge-other-input');
+const addFridgeOtherButton = document.getElementById('add-fridge-other-btn');
+const fridgeOtherList = document.getElementById('fridge-other-list');
+const findFridgeMealsButton = document.getElementById('find-fridge-meals-btn');
+const clearFridgeButton = document.getElementById('clear-fridge-btn');
+const fridgeResults = document.getElementById('fridge-results');
+const healthMonth = document.getElementById('health-month');
+const healthMeter = document.querySelector('.health-meter');
+const healthMeterFill = document.getElementById('health-meter-fill');
+const healthScore = document.getElementById('health-score');
+const healthLevel = document.getElementById('health-level');
+const healthDelta = document.getElementById('health-delta');
+const healthComment = document.getElementById('health-comment');
+const healthLogCount = document.getElementById('health-log-count');
+const recordHealthButton = document.getElementById('record-health-btn');
+const manageHealthLogsButton = document.getElementById('manage-health-logs-btn');
+const healthLogPage = document.getElementById('health-log-page');
+const closeHealthLogButton = document.getElementById('close-health-log-btn');
+const clearHealthLogsButton = document.getElementById('clear-health-logs-btn');
+const healthLogList = document.getElementById('health-log-list');
+const authView = document.getElementById('auth-view');
+const authForm = document.getElementById('auth-form');
+const authEmailInput = document.getElementById('auth-email');
+const authPasswordInput = document.getElementById('auth-password');
+const authSubmitButton = document.getElementById('auth-submit-btn');
+const authSwitchButton = document.getElementById('auth-switch-btn');
+const devLoginButton = document.getElementById('dev-login-btn');
+const emailField = document.getElementById('email-field');
+const authMessage = document.getElementById('auth-message');
+const currentUserName = document.getElementById('current-user-name');
+const logoutButton = document.getElementById('logout-btn');
+const appShell = document.querySelector('.app-shell');
+const accountsStorageKey = 'meal-planner-accounts';
+const currentUserStorageKey = 'meal-planner-current-user';
+const userDataStoragePrefix = 'meal-planner-user-data:';
+const developerAccount = {
+  email: 'dev@create-meal.local',
+  password: 'kai1.meal'
+};
+let authMode = 'signin';
+
+function getAccounts() {
+  try {
+    return JSON.parse(localStorage.getItem(accountsStorageKey)) || [];
+  } catch (error) {
+    console.warn('アカウント情報を読み込めませんでした', error);
+    return [];
+  }
+}
+
+function saveAccounts(accounts) {
+  localStorage.setItem(accountsStorageKey, JSON.stringify(accounts));
+}
+
+function getSafeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function getUserDataKey(email) {
+  return `${userDataStoragePrefix}${encodeURIComponent(getSafeEmail(email))}`;
+}
+
+function getCurrentUser() {
+  try {
+    const user = JSON.parse(localStorage.getItem(currentUserStorageKey));
+    if (!user || !getSafeEmail(user.email)) {
+      clearCurrentUser();
+      return null;
+    }
+    return user;
+  } catch (error) {
+    console.warn('ログインユーザーを読み込めませんでした', error);
+    clearCurrentUser();
+    return null;
+  }
+}
+
+function setCurrentUser(user) {
+  localStorage.setItem(currentUserStorageKey, JSON.stringify(user));
+}
+
+function clearCurrentUser() {
+  localStorage.removeItem(currentUserStorageKey);
+}
+
+function loadUserData() {
+  const user = getCurrentUser();
+  if (!user) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(localStorage.getItem(getUserDataKey(user.email))) || {};
+  } catch (error) {
+    console.warn('ユーザーデータを読み込めませんでした', error);
+    return {};
+  }
+}
+
+function saveUserData(data) {
+  const user = getCurrentUser();
+  if (!user) {
+    return;
+  }
+  localStorage.setItem(getUserDataKey(user.email), JSON.stringify(data));
+}
+
+function getUserDataValue(key, fallback) {
+  const data = loadUserData();
+  return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : fallback;
+}
+
+function setUserDataValue(key, value) {
+  const data = loadUserData();
+  data[key] = value;
+  saveUserData(data);
+}
+
+function syncCurrentUserBadge() {
+  const user = getCurrentUser();
+  currentUserName.textContent = user ? user.email : '未ログイン';
+}
+
+function setAuthMode(nextMode) {
+  authMode = nextMode;
+  const isDeveloperMode = nextMode === 'developer';
+  emailField.classList.toggle('hidden', isDeveloperMode);
+  authEmailInput.required = !isDeveloperMode;
+  authEmailInput.disabled = isDeveloperMode;
+  authPasswordInput.minLength = isDeveloperMode ? 1 : 6;
+  authForm.noValidate = isDeveloperMode;
+  authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
+  authSwitchButton.hidden = isDeveloperMode;
+  authMessage.textContent = nextMode === 'developer'
+    ? '開発者専用ログインです。パスワードを入力してください。'
+    : nextMode === 'signin'
+      ? '登録済みのメールアドレスでサインインします。'
+      : '新しいメールアドレスでアカウントを作成します。';
+}
+
+function showAuthView(message = '') {
+  authMessage.textContent = message;
+  authView.hidden = false;
+  appShell.hidden = true;
+  authEmailInput.focus();
+}
+
+function showAppView() {
+  syncCurrentUserBadge();
+  authView.hidden = true;
+  appShell.hidden = false;
+  renderUserData();
+}
+
+function completeSuccessfulLogin(user) {
+  setCurrentUser(user);
+  authForm.reset();
+  authPasswordInput.value = '';
+  showAppView();
+}
+
+function renderUserData() {
+  renderBookmarks();
+  renderHistory();
+  renderHealthMaster();
+  renderHealthLogs();
+}
+
+function handleAuthSubmit(event) {
+  event.preventDefault();
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value.trim();
+
+  if (authMode === 'developer') {
+    if (!password) {
+      authMessage.textContent = '開発者パスワードを入力してください。';
+      return;
+    }
+
+    if (password !== developerAccount.password) {
+      authMessage.textContent = '開発者パスワードが違います。';
+      return;
+    }
+
+    const devUser = {
+      email: developerAccount.email,
+      password: developerAccount.password,
+      role: 'developer',
+      createdAt: new Date().toISOString()
+    };
+    completeSuccessfulLogin(devUser);
+    return;
+  }
+
+  if (!email || !password) {
+    authMessage.textContent = 'メールアドレスとパスワードを入力してください。';
+    return;
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(email)) {
+    authMessage.textContent = '正しいメールアドレスを入力してください。';
+    return;
+  }
+
+  if (password.length < 6) {
+    authMessage.textContent = 'パスワードは6文字以上で入力してください。';
+    return;
+  }
+
+  const accounts = getAccounts();
+
+  if (authMode === 'signup') {
+    const existing = accounts.find((account) => getSafeEmail(account.email) === getSafeEmail(email));
+    if (existing) {
+      authMessage.textContent = 'そのメールアドレスはすでに登録されています。サインインしてください。';
+      setAuthMode('signin');
+      return;
+    }
+
+    const newUser = {
+      email: email.toLowerCase(),
+      password,
+      createdAt: new Date().toISOString()
+    };
+    accounts.push(newUser);
+    saveAccounts(accounts);
+    authForm.reset();
+    setAuthMode('signin');
+    showAuthView('アカウント登録が完了しました。登録したメールアドレスとパスワードでサインインしてください。');
+    return;
+  }
+
+  const matched = accounts.find(
+    (account) => getSafeEmail(account.email) === getSafeEmail(email) && account.password === password
+  );
+  if (!matched) {
+    authMessage.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+    return;
+  }
+
+  completeSuccessfulLogin(matched);
+}
+
+function handleLogout() {
+  clearCurrentUser();
+  authForm.reset();
+  setAuthMode('signin');
+  syncCurrentUserBadge();
+  showAuthView('ログアウトしました。無料アカウントで再度サインインしてください。');
+}
+
+function handleDeveloperLogin() {
+  authEmailInput.value = developerAccount.email;
+  authPasswordInput.value = '';
+  authPasswordInput.focus();
+  setAuthMode('developer');
+}
+
+
+const bookmarksStorageKey = 'meal-planner-bookmarks';
+const historyStorageKey = 'meal-planner-history';
+const shoppingChecksStorageKey = 'meal-planner-shopping-checks';
+const healthScoresStorageKey = 'meal-planner-health-scores';
+const eatenLogsStorageKey = 'meal-planner-eaten-logs';
 
 const mealLibrary = {
   和風: {
@@ -116,37 +407,115 @@ const mealLibrary = {
   }
 };
 
-const defaultVideoUrl = 'videos/cooking-demo.mp4';
-
-function getYoutubeSearchEmbedUrl(query) {
-  if (!query) return '';
-  const encoded = encodeURIComponent(query + ' 料理');
-  return `https://www.youtube-nocookie.com/embed/videoseries?listType=search&list=${encoded}`;
+function getAllMeals() {
+  return Object.values(mealLibrary).flatMap((menu) => [
+    ...menu.breakfast,
+    ...menu.lunch,
+    ...menu.dinner
+  ]).filter((meal, index, meals) => meals.findIndex((item) => item.name === meal.name) === index);
 }
 
-function getEmbedUrl(url) {
-  if (!url) return '';
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\./, '');
+const fridgeIngredientOptions = [
+  '卵', '鶏肉', '豚肉', '鮭・魚', '豆腐', 'チーズ', 'ハム',
+  'キャベツ', '玉ねぎ', 'じゃがいも', 'にんじん', 'トマト', 'きゅうり',
+  '小松菜・ほうれん草', 'きのこ', 'ご飯', 'パン', 'うどん', 'パスタ'
+];
 
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
-      const id = parsed.searchParams.get('v');
-      if (id) return `https://www.youtube.com/embed/${id}`;
-      const shorts = parsed.pathname.match(/^\/shorts\/([^/]+)/);
-      if (shorts) return `https://www.youtube.com/embed/${shorts[1]}`;
-      if (parsed.pathname.startsWith('/embed/')) return url;
-    }
+function renderFridgeIngredients() {
+  fridgeIngredients.innerHTML = fridgeIngredientOptions.map((ingredient) => `
+    <button type="button" class="fridge-ingredient" data-fridge-ingredient="${ingredient}" aria-pressed="false">
+      ${ingredient}
+    </button>
+  `).join('');
+}
 
-    if (host === 'youtu.be') {
-      const id = parsed.pathname.replace(/^\//, '');
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-  } catch (error) {
-    console.warn('Invalid video URL', error);
+function getSelectedFridgeIngredients() {
+  const selected = [...fridgeIngredients.querySelectorAll('[aria-pressed="true"]')]
+    .map((button) => button.dataset.fridgeIngredient);
+  const custom = [...fridgeOtherList.querySelectorAll('[data-custom-fridge-ingredient]')]
+    .map((chip) => chip.dataset.customFridgeIngredient);
+  return [...new Set([...selected, ...custom])];
+}
+
+function addCustomFridgeIngredients() {
+  const values = fridgeOtherInput.value
+    .split(/[、,，\s]+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  values.forEach((value) => {
+    const exists = [...fridgeOtherList.querySelectorAll('[data-custom-fridge-ingredient]')]
+      .some((chip) => chip.dataset.customFridgeIngredient === value);
+    if (exists) return;
+
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'fridge-custom-chip';
+    chip.dataset.customFridgeIngredient = value;
+    chip.textContent = `${value} ×`;
+    chip.title = `${value}を削除`;
+    fridgeOtherList.appendChild(chip);
+  });
+
+  fridgeOtherInput.value = '';
+}
+
+function ingredientMatches(ingredient, selectedIngredient) {
+  if (ingredient.includes(selectedIngredient) || selectedIngredient.includes(ingredient)) return true;
+  if (selectedIngredient === '鮭・魚' && /鮭|魚|刺身/.test(ingredient)) return true;
+  if (selectedIngredient === '鶏肉' && /鶏/.test(ingredient)) return true;
+  if (selectedIngredient === '豚肉' && /豚/.test(ingredient)) return true;
+  if (selectedIngredient === 'きのこ' && ingredient.includes('きのこ')) return true;
+  if (selectedIngredient === '小松菜・ほうれん草' && /小松菜|ほうれん草/.test(ingredient)) return true;
+  return false;
+}
+
+function renderFridgeResults() {
+  const selected = getSelectedFridgeIngredients();
+  if (!selected.length) {
+    fridgeResults.innerHTML = '<p class="empty-message">食材を1つ以上選んでください。</p>';
+    return;
   }
 
-  return url;
+  const results = getAllMeals().map((meal) => {
+    const ingredients = getMealIngredients(meal);
+    const matched = selected.filter((item) => ingredients.some((ingredient) => ingredientMatches(ingredient, item))).length;
+    return { meal, matched };
+  }).filter((result) => result.matched > 0).sort((a, b) => b.matched - a.matched).slice(0, 12);
+
+  if (!results.length) {
+    results.push({
+      meal: {
+        name: '冷蔵庫おまかせ食卓',
+        desc: `${selected.join('・')}を中心に、フライパンで作れる一皿を考えました。`,
+        tags: ['冷蔵庫レスキュー', 'おまかせ'],
+        ingredients: [...selected, '油または調味料'],
+        steps: [
+          `1. ${selected.join('、')}を食べやすい大きさに切ります。`,
+          '2. 火の通りにくい食材から順に炒め、塩こしょうやしょうゆで味を整えます。',
+          '3. ご飯やパンを添えて、今日の食卓に並べます。'
+        ]
+      },
+      matched: selected.length
+    });
+  }
+
+  fridgeResults.innerHTML = `
+    <div class="fridge-results-heading">
+      <h3>作れそうな献立</h3>
+      <span>${results.length}件</span>
+    </div>
+    <div class="fridge-result-grid">
+      ${results.map(({ meal, matched }) => `
+        <article class="fridge-result-item">
+          <span class="fridge-match">${matched}/${selected.length}食材が一致</span>
+          <h3>${meal.name}</h3>
+          <p>${meal.desc}</p>
+          <button type="button" class="load-bookmark-btn" data-fridge-meal="${encodeURIComponent(JSON.stringify(meal))}">詳しく見る</button>
+        </article>
+      `).join('')}
+    </div>
+  `;
 }
 
 function getMealNutrition(meal) {
@@ -194,20 +563,210 @@ function getMealNutrition(meal) {
   return { calories, protein, fiber };
 }
 
-function buildMediaHtml(videoUrl) {
-  const resolved = getEmbedUrl(videoUrl);
-  const isYouTube = resolved.includes('youtube.com/embed/') || resolved.includes('youtu.be/');
+function getMonthKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
 
-  if (isYouTube) {
-    return `<iframe class="recipe-iframe" src="${resolved}" title="料理の参考動画" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+function getMonthLabel(monthKey) {
+  const [, month] = monthKey.split('-');
+  return `${Number(month)}月`;
+}
+
+function getHealthAssessment(plan, selectedIndex = 0) {
+  const pattern = plan.patterns[selectedIndex] || plan.patterns[0];
+  const meals = [pattern.breakfast, pattern.lunch, pattern.dinner];
+  const balanceScores = {
+    standard: 20,
+    vegetable: 18,
+    protein: 16,
+    fiber: 15,
+    iron: 14,
+    calcium: 14,
+    lowcarb: 12
+  };
+  const vegetableCount = meals.filter((meal) => meal.tags.includes('野菜') || /野菜|サラダ|小松菜|ほうれん草|きゅうり/.test(meal.name)).length;
+  const proteinCount = meals.filter((meal) => meal.tags.includes('たんぱく質') || /鶏|豚|肉|魚|鮭|卵|豆腐|ハンバーグ/.test(meal.name)).length;
+  const fiberCount = meals.filter((meal) => meal.tags.includes('食物繊維') || /野菜|きのこ|海藻|雑穀|ひじき|サラダ/.test(meal.name)).length;
+  const balanceScore = balanceScores[plan.values.balance] || balanceScores.standard;
+  const score = Math.min(100, Math.max(0, 35 + balanceScore + vegetableCount * 5 + proteinCount * 3 + fiberCount * 3));
+  let comment = '今月はこの調子で、主食・主菜・副菜の組み合わせを続けましょう。';
+
+  if (vegetableCount < 2) {
+    comment = '来月は野菜の副菜をもう1品。色の違う野菜を2種類以上取り入れる日を増やしましょう。';
+  } else if (proteinCount < 2) {
+    comment = '来月は卵・魚・大豆製品などの主菜を、朝か昼にも少し取り入れてみましょう。';
+  } else if (fiberCount < 1) {
+    comment = '来月はきのこ・海藻・雑穀・根菜を1品足して、食物繊維を補いましょう。';
   }
 
-  return `
-    <video class="recipe-video" controls preload="metadata" playsinline>
-      <source src="${resolved || defaultVideoUrl}" type="video/mp4" />
-      お使いのブラウザでは動画の再生に対応していません。
-    </video>
-  `;
+  return { score, comment };
+}
+
+function getHealthLevel(score) {
+  if (score >= 80) return 'とても良好';
+  if (score >= 65) return '良好';
+  if (score >= 50) return 'まずまず';
+  return '見直しポイントあり';
+}
+
+function getHealthScores() {
+  return getUserDataValue(healthScoresStorageKey, {});
+}
+
+function getEatenLogs() {
+  return getUserDataValue(eatenLogsStorageKey, []);
+}
+
+function getLocalDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function rebuildHealthScores() {
+  const scores = {};
+  getEatenLogs().forEach((log) => {
+    const monthKey = log.date.slice(0, 7);
+    const assessment = getHealthAssessment(log.plan, log.selectedIndex || 0);
+    const current = scores[monthKey] || { total: 0, count: 0, score: 0, comment: '' };
+    current.total += assessment.score;
+    current.count += 1;
+    current.score = Math.round(current.total / current.count);
+    current.comment = assessment.comment;
+    scores[monthKey] = current;
+  });
+  setUserDataValue(healthScoresStorageKey, scores);
+}
+
+function renderHealthLogs() {
+  const logs = getEatenLogs();
+  clearHealthLogsButton.style.display = logs.length ? 'inline-flex' : 'none';
+  if (!logs.length) {
+    healthLogList.innerHTML = '<p class="empty-message">記録はまだありません</p>';
+    return;
+  }
+
+  healthLogList.innerHTML = logs.map((log, index) => {
+    const pattern = log.plan.patterns[log.selectedIndex || 0] || log.plan.patterns[0];
+    const date = new Date(`${log.date}T00:00:00`).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+    return `
+      <article class="health-log-item">
+        <div class="health-log-main">
+          <span class="history-date">${date}</span>
+          <strong>${log.plan.values.mood}・${log.plan.values.people}人分</strong>
+          <span>朝 ${pattern.breakfast.name} / 昼 ${pattern.lunch.name} / 夜 ${pattern.dinner.name}</span>
+        </div>
+        <button type="button" class="delete-bookmark-btn" data-delete-health-log-index="${index}">この記録を削除</button>
+      </article>
+    `;
+  }).join('');
+}
+
+function renderHealthMaster() {
+  const monthKey = getMonthKey();
+  const scores = getHealthScores();
+  const current = scores[monthKey];
+  const monthLogs = getEatenLogs().filter((log) => log.date.startsWith(monthKey));
+  const previousDate = new Date();
+  previousDate.setMonth(previousDate.getMonth() - 1);
+  const previous = scores[getMonthKey(previousDate)];
+  const score = current ? current.score : null;
+
+  healthMonth.textContent = getMonthLabel(monthKey);
+  healthLogCount.textContent = `今月の食卓 ${monthLogs.length}回`;
+  healthMeterFill.style.width = `${score || 0}%`;
+  healthMeter.setAttribute('aria-valuenow', String(score || 0));
+  healthScore.textContent = score === null ? '--' : score;
+  healthLevel.textContent = score === null ? '今月の記録待ち' : getHealthLevel(score);
+  healthDelta.textContent = score === null
+    ? '献立を作ると計測を始めます'
+    : previous ? `前月比 ${score - previous.score >= 0 ? '+' : ''}${score - previous.score}pt` : '今月から計測中';
+  healthComment.textContent = current ? current.comment : '実際に食べた献立を記録すると、食事バランスをもとに健康レベルを表示します。';
+  const alreadyRecorded = monthLogs.some((log) => log.date === getLocalDateKey());
+  recordHealthButton.disabled = !resultPanel.currentPlan || alreadyRecorded;
+  recordHealthButton.textContent = alreadyRecorded ? '本日は記録済み' : '食べた献立を記録';
+}
+
+function recordHealthScore(plan) {
+  const monthKey = getMonthKey();
+  const scores = getHealthScores();
+  const assessment = getHealthAssessment(plan);
+  const current = scores[monthKey] || { total: 0, count: 0, score: 0, comment: '' };
+  current.total += assessment.score;
+  current.count += 1;
+  current.score = Math.round(current.total / current.count);
+  current.comment = assessment.comment;
+  scores[monthKey] = current;
+  setUserDataValue(healthScoresStorageKey, scores);
+  renderHealthMaster();
+}
+
+function recordEatenPlan(plan, selectedIndex = 0) {
+  const today = getLocalDateKey();
+  const logs = getEatenLogs();
+  if (logs.some((log) => log.date === today)) return false;
+
+  logs.unshift({ date: today, plan, selectedIndex });
+  setUserDataValue(eatenLogsStorageKey, logs.slice(0, 180));
+  rebuildHealthScores();
+  renderHealthMaster();
+  return true;
+}
+
+function getMealIngredients(meal) {
+  if (meal.ingredients) return meal.ingredients;
+  const name = meal.name;
+  const ingredientRules = [
+    ['焼き鮭とほうれん草のご飯', ['鮭の切り身', 'ほうれん草', 'ご飯', 'しょうゆ']],
+    ['味噌汁と豆腐の朝食', ['豆腐', 'わかめ', '味噌', 'だし', 'ご飯']],
+    ['鶏むね肉の照り焼き定食', ['鶏むね肉', 'しょうゆ', 'みりん', '砂糖', 'キャベツ・きゅうり', 'ご飯']],
+    ['豚しゃぶ野菜丼', ['豚薄切り肉', 'きゅうり', '大根', 'ご飯', 'ポン酢']],
+    ['鮭ときのこのホイル焼き', ['鮭の切り身', 'きのこ類', '玉ねぎ', 'バター', '塩・こしょう']],
+    ['うどんと焼き茄子の献立', ['うどん', '茄子', 'だしつゆ', 'ねぎ', 'しょうが']],
+    ['たまごとトマトのトースト', ['食パン', '卵', 'トマト', '塩・こしょう']],
+    ['ヨーグルトとフルーツのボウル', ['ヨーグルト', 'バナナ・ベリー', 'はちみつ']],
+    ['チキンと野菜のオーブン焼き', ['鶏肉', 'じゃがいも', 'にんじん', 'ブロッコリー', 'オリーブオイル', '塩・こしょう']],
+    ['パスタサラダ', ['パスタ', 'トマト', 'きゅうり', 'ツナ', 'ドレッシング']],
+    ['ハンバーグとポテト', ['合いびき肉', '玉ねぎ', '卵', 'パン粉', 'じゃがいも', 'ソース']],
+    ['チーズ入りオムレツとサラダ', ['卵', 'チーズ', 'レタス・トマト', '塩・こしょう', 'ドレッシング']],
+    ['冷奴ときゅうりの朝食', ['豆腐', 'きゅうり', 'しょうゆ', 'かつお節']],
+    ['雑穀米と小鉢', ['雑穀米', '切り干し大根', 'きゅうり', 'しょうゆ']],
+    ['鶏むね肉のサラダボウル', ['鶏むね肉', 'レタス', 'トマト', 'ゆで卵', 'ドレッシング']],
+    ['冷製うどん', ['うどん', 'きゅうり', 'ねぎ', 'わさび', 'めんつゆ']],
+    ['豆腐ステーキと小松菜', ['木綿豆腐', '小松菜', '片栗粉', 'しょうゆ', 'ごま油']],
+    ['お刺身と酢の物', ['刺身', 'わかめ', 'きゅうり', '酢', 'しょうゆ・わさび']],
+    ['雑炊とおかか玉子', ['ご飯', '卵', 'ねぎ', 'だし', 'かつお節']],
+    ['パンとシチュー', ['食パン', '鶏肉', '玉ねぎ', 'じゃがいも', 'にんじん', 'シチューのルー']],
+    ['親子丼', ['鶏もも肉', '卵', '玉ねぎ', 'だし・しょうゆ', 'ご飯', 'ねぎ']],
+    ['カレーライス', ['豚肉または鶏肉', '玉ねぎ', 'じゃがいも', 'にんじん', 'カレールー', 'ご飯']],
+    ['鍋料理', ['白菜', '長ねぎ', 'きのこ類', '豆腐', '豚肉または鶏肉', '鍋つゆ']],
+    ['クリームシチューとご飯', ['鶏肉', '玉ねぎ', 'じゃがいも', 'にんじん', '牛乳', 'シチューのルー', 'ご飯']],
+    ['目玉焼きと焼き芋の朝食', ['卵', '焼き芋', '塩・こしょう']],
+    ['トーストとハムエッグ', ['食パン', '卵', 'ハム', 'バター', '塩・こしょう']],
+    ['チキンカレー', ['鶏肉', '玉ねぎ', 'にんじん', 'カレールー', 'ご飯']],
+    ['麻婆豆腐定食', ['豆腐', '豚ひき肉', '長ねぎ', '味噌・しょうゆ', '豆板醤', 'ご飯']],
+    ['焼き肉風定食', ['牛肉または豚肉', '玉ねぎ・ピーマン', '焼き肉のたれ', 'ご飯', '味噌汁']],
+    ['グラタン', ['マカロニ', '鶏肉', '玉ねぎ', '牛乳', '小麦粉', 'チーズ']],
+    ['バナナヨーグルト', ['ヨーグルト', 'バナナ', 'はちみつ']],
+    ['おにぎりと卵焼き', ['ご飯', '卵', 'のり', '塩']],
+    ['冷凍うどんと卵', ['冷凍うどん', '卵', 'ねぎ', 'しょうゆ']],
+    ['トマトチーズトースト', ['食パン', 'トマト', 'チーズ', '塩・こしょう']],
+    ['焼き鮭とキャベツ', ['鮭の切り身', 'キャベツ', '油', '塩・こしょう']],
+    ['豚バラと玉ねぎの炒め物', ['豚バラ肉', '玉ねぎ', 'しょうゆ', 'みりん', 'ご飯']],
+    ['ふわふわ卵とトースト', ['卵', '食パン', '牛乳', 'バター', '塩']],
+    ['ミニオムライス', ['ご飯', '卵', '鶏肉', '玉ねぎ', 'ケチャップ']],
+    ['チキンライス', ['鶏肉', 'ご飯', '玉ねぎ', 'ケチャップ']],
+    ['うどんの卵とじ', ['うどん', '卵', 'ねぎ', 'だしつゆ']],
+    ['ハンバーグとコーン', ['合いびき肉', '玉ねぎ', '卵', 'パン粉', 'コーン', 'ソース']],
+    ['野菜たっぷりスープパスタ', ['パスタ', 'キャベツ', 'にんじん', '玉ねぎ', 'ベーコン', 'コンソメ']],
+    ['卵とねぎのおにぎり', ['ご飯', '卵', 'ねぎ', 'しょうゆ', '油']],
+    ['豆腐と大根の味噌汁', ['豆腐', '大根', 'ねぎ', '味噌', 'だし']],
+    ['ひじきと卵の炒飯', ['ご飯', 'ひじき', '卵', 'ねぎ', 'しょうゆ']],
+    ['じゃがいもと玉ねぎの煮物', ['じゃがいも', '玉ねぎ', 'だし', 'しょうゆ', 'みりん']],
+    ['豆腐ハンバーグ', ['木綿豆腐', '合いびき肉', '玉ねぎ', '卵', 'パン粉', 'ソース']],
+    ['野菜たっぷりスープ', ['キャベツ', 'にんじん', '玉ねぎ', 'きのこ類', 'コンソメ', 'ご飯（お好みで）']]
+  ];
+
+  const matched = ingredientRules.find(([mealName]) => mealName === name);
+  return matched ? matched[1] : ['主菜の食材', '野菜を2〜3種類', '調味料', 'ご飯またはパン'];
 }
 
 const balanceHints = {
@@ -268,43 +827,176 @@ function buildPatterns(moodMenu, count = 3) {
   return patterns;
 }
 
-function buildGuide(meal, videoUrl) {
+function buildGuide(meal, people) {
   const nutrition = getMealNutrition(meal);
-  const searchQuery = `${meal.name} 作り方`;
-  const resolvedVideoUrl = videoUrl || getYoutubeSearchEmbedUrl(searchQuery) || meal.videoUrl || defaultVideoUrl;
+  const ingredients = getMealIngredients(meal);
 
   return `
     <div class="guide-card">
-      <div class="guide-top">
-        <span class="video-pill">▶ 参考動画</span>
-        <span class="video-pill subtle">初心者向け</span>
-      </div>
-      ${buildMediaHtml(resolvedVideoUrl)}
+      <div class="section-label">必要な材料（${people}人分の目安）</div>
+      <ul class="ingredient-list">
+        ${ingredients.map((ingredient) => `<li>${ingredient}</li>`).join('')}
+      </ul>
       <div class="nutrition-list">
         <span class="nutrition-pill">🔥 ${nutrition.calories} kcal</span>
         <span class="nutrition-pill">💪 たんぱく質 ${nutrition.protein}g</span>
         <span class="nutrition-pill">🌿 食物繊維 ${nutrition.fiber}g</span>
       </div>
-      <ul class="timeline">
+      <div class="section-label">作り方</div>
+      <ol class="timeline">
         ${meal.steps.map((step, index) => `
-          <li class="video-step">
-            <span class="time-pill">0:${String(index + 1).padStart(2, '0')}</span>
+          <li class="recipe-step">
+            <span class="step-number">${index + 1}</span>
             <span class="step-text">${step.replace(/^\d+\.\s*/, '')}</span>
           </li>
         `).join('')}
-      </ul>
+      </ol>
     </div>
   `;
 }
 
-function buildResult(values) {
+function getMealTime(meal) {
+  const name = meal.name;
+  const tags = meal.tags || [];
+  let minutes = 30;
+
+  if (tags.includes('時短') || name.includes('ヨーグルト') || name.includes('冷奴')) {
+    minutes = 10;
+  } else if (name.includes('鍋') || name.includes('シチュー') || name.includes('カレー')) {
+    minutes = 40;
+  } else if (tags.includes('簡単') || tags.includes('軽い')) {
+    minutes = 20;
+  }
+
+  return minutes;
+}
+
+function getMealTips(meal) {
+  const name = meal.name;
+  const tips = ['材料は作る前にすべて計量し、調理の流れを確認しておくとスムーズです。'];
+
+  if (name.includes('肉') || name.includes('鶏') || name.includes('豚') || name.includes('ハンバーグ')) {
+    tips.push('肉の中心まで火が通ったことを確認してから盛り付けます。');
+  }
+  if (name.includes('鮭') || name.includes('刺身') || name.includes('魚')) {
+    tips.push('魚は水気をキッチンペーパーで拭くと、焼くときに油がはねにくくなります。');
+  }
+  if (name.includes('卵') || name.includes('オムレツ') || name.includes('親子丼')) {
+    tips.push('卵料理は余熱でも火が進むので、少し早めに火を止めるとふんわり仕上がります。');
+  }
+  if (name.includes('鍋') || name.includes('シチュー') || name.includes('スープ')) {
+    tips.push('煮込み中は底が焦げないよう、ときどき鍋底からやさしく混ぜます。');
+  }
+  if (name.includes('トースト') || name.includes('パン')) {
+    tips.push('パンは焼きすぎると具材が乾くため、焼き色を見ながら加熱します。');
+  }
+
+  return tips;
+}
+
+function getStepDetail(meal, index) {
+  const name = meal.name;
+
+  if (name.includes('うどん')) {
+    if (index === 0) return '沸騰した鍋で表示時間を目安に5〜7分ゆでます。冷製なら流水でしっかり冷やします。';
+    return '具材を加えたら1〜2分温め、麺がのびる前に盛り付けます。';
+  }
+  if (name.includes('鍋料理')) {
+    if (index === 0) return '鍋つゆを沸かしてから、火が通りにくい具材を先に入れます。';
+    return '沸騰後は中火で8〜10分、肉の中心まで火が通るまで煮ます。';
+  }
+  if (name.includes('シチュー') || name.includes('カレー')) {
+    if (index === 0) return '具材を油で3〜5分炒め、表面の色が変わるまで加熱します。';
+    return '沸騰したら弱火にして15〜20分煮込み、具材が柔らかくなったら仕上げます。';
+  }
+  if (name.includes('鮭') || name.includes('魚')) {
+    return index === 0 ? '魚の水気を拭き、片面を中火で4〜5分焼きます。' : '裏返してさらに3〜4分、身の中心まで火が通るように焼きます。';
+  }
+  if (name.includes('肉') || name.includes('鶏') || name.includes('豚') || name.includes('ハンバーグ')) {
+    return index === 0 ? '肉を焼く前に表面の水気を拭き、片面を中火で3〜4分焼きます。' : '裏返して弱めの中火で4〜6分、中心まで火が通るまで加熱します。';
+  }
+  if (name.includes('ほうれん草') || name.includes('小松菜') || name.includes('野菜')) {
+    return index === 0 ? '鍋で1〜2分さっとゆで、色が鮮やかになったら取り出します。' : '水気をしっかり絞ってから、他の具材と合わせます。';
+  }
+  if (name.includes('卵') || name.includes('オムレツ') || name.includes('親子丼')) {
+    return index === 0 ? '卵を溶き、白身を切るように混ぜておきます。' : '弱火で1〜2分、表面が半熟のうちに火を止めて余熱で仕上げます。';
+  }
+
+  return index === 0
+    ? '材料を食べやすい大きさに切り、調味料を先に準備します。'
+    : '全体に火が通り、香りが立ったら味を確認して仕上げます。';
+}
+
+function renderMealDetail(meal, mealLabel, people) {
+  const nutrition = getMealNutrition(meal);
+  mealDetailContent.innerHTML = `
+    <div class="meal-detail-heading">
+      <p class="meta">${mealLabel}の献立</p>
+      <h2>${meal.name}</h2>
+      <p class="meal-detail-description">${meal.desc}</p>
+      <div class="meal-detail-meta">
+        <span class="duration-pill">⏱ 約${getMealTime(meal)}分</span>
+        <span class="duration-pill">${people}人分</span>
+      </div>
+    </div>
+    <div class="meal-detail-grid">
+      <section class="detail-section">
+        <h3>必要な材料</h3>
+        <p class="detail-note">${people}人分の目安です。人数に合わせて調整してください。</p>
+        <ul class="detail-ingredients">
+          ${getMealIngredients(meal).map((ingredient) => `<li>${ingredient}</li>`).join('')}
+        </ul>
+      </section>
+      <section class="detail-section detail-nutrition">
+        <h3>栄養の目安</h3>
+        <div class="nutrition-list">
+          <span class="nutrition-pill">🔥 ${nutrition.calories} kcal</span>
+          <span class="nutrition-pill">💪 ${nutrition.protein}g</span>
+          <span class="nutrition-pill">🌿 ${nutrition.fiber}g</span>
+        </div>
+      </section>
+    </div>
+    <section class="detail-section detail-steps">
+      <h3>詳しい作り方</h3>
+      <ol class="detail-step-list">
+        ${meal.steps.map((step, index) => `
+          <li>
+            <span class="detail-step-number">${index + 1}</span>
+            <div><strong>${step.replace(/^\d+\.\s*/, '')}</strong><p>${getStepDetail(meal, index)}</p></div>
+          </li>
+        `).join('')}
+      </ol>
+    </section>
+    <section class="detail-section caution-section">
+      <h3>作るときの注意点</h3>
+      <ul class="caution-list">
+        ${getMealTips(meal).map((tip) => `<li>${tip}</li>`).join('')}
+      </ul>
+    </section>
+  `;
+}
+
+function getPlanKey(plan) {
+  return JSON.stringify(plan.patterns);
+}
+
+function createPlan(values) {
   const mood = values.mood;
   const balance = values.balance;
   const people = Number(values.people);
   const budget = values.budget;
   const moodMenu = mealLibrary[mood] || mealLibrary.和風;
   const patterns = buildPatterns(moodMenu, 3);
-  const [primaryPattern] = patterns;
+  return { values, patterns };
+}
+
+function buildResult(plan, selectedIndex = 0) {
+  const { values, patterns } = plan;
+  const mood = values.mood;
+  const balance = values.balance;
+  const people = Number(values.people);
+  const budget = values.budget;
+  const primaryPattern = patterns[selectedIndex] || patterns[0];
 
   const shoppingList = [
     primaryPattern.breakfast.name.includes('鮭') || primaryPattern.breakfast.name.includes('鶏') || primaryPattern.breakfast.name.includes('肉') || primaryPattern.lunch.name.includes('鶏') || primaryPattern.dinner.name.includes('魚') ? '主菜の食材' : 'お肉またはお魚',
@@ -316,45 +1008,63 @@ function buildResult(values) {
 
   return `
     <div class="result-grid">
+      <div class="result-actions">
+        <button type="button" class="bookmark-btn" data-bookmark-plan="${encodeURIComponent(JSON.stringify(plan))}">☆ この献立をブックマーク</button>
+        <button type="button" class="health-record-btn" data-record-eaten>食べた献立を記録</button>
+      </div>
       <div class="pattern-summary-card">
         <h3>3つの献立候補</h3>
         <ul class="pattern-list">
           ${patterns.map((pattern, index) => `
-            <li>
-              <strong>候補 ${index + 1}</strong>
+            <li class="${index === selectedIndex ? 'is-selected' : ''}">
+              <button type="button" class="candidate-button" data-candidate-index="${index}" aria-pressed="${index === selectedIndex}">
+                <strong>候補 ${index + 1}</strong>
               <span>朝: ${pattern.breakfast.name}</span>
               <span>昼: ${pattern.lunch.name}</span>
               <span>夜: ${pattern.dinner.name}</span>
+              </button>
             </li>
           `).join('')}
         </ul>
       </div>
-      <div class="meal-card">
-        <p class="meta">朝</p>
+      <div class="meal-card" data-meal-slot="breakfast" tabindex="0" role="button" aria-label="${primaryPattern.breakfast.name}の詳しい作り方を開く">
+        <div class="meal-heading">
+          <p class="meta">朝</p>
+          <span class="duration-pill">⏱ 約${getMealTime(primaryPattern.breakfast)}分</span>
+        </div>
         <h3>${primaryPattern.breakfast.name}</h3>
         <p>${primaryPattern.breakfast.desc}</p>
-        ${buildGuide(primaryPattern.breakfast)}
+        ${buildGuide(primaryPattern.breakfast, people)}
         <div class="badges">
           ${primaryPattern.breakfast.tags.map((tag) => `<span>${tag}</span>`).join('')}
         </div>
+        <p class="meal-detail-link">詳しい作り方と注意点を見る →</p>
       </div>
-      <div class="meal-card">
-        <p class="meta">昼</p>
+      <div class="meal-card" data-meal-slot="lunch" tabindex="0" role="button" aria-label="${primaryPattern.lunch.name}の詳しい作り方を開く">
+        <div class="meal-heading">
+          <p class="meta">昼</p>
+          <span class="duration-pill">⏱ 約${getMealTime(primaryPattern.lunch)}分</span>
+        </div>
         <h3>${primaryPattern.lunch.name}</h3>
         <p>${primaryPattern.lunch.desc}</p>
-        ${buildGuide(primaryPattern.lunch)}
+        ${buildGuide(primaryPattern.lunch, people)}
         <div class="badges">
           ${primaryPattern.lunch.tags.map((tag) => `<span>${tag}</span>`).join('')}
         </div>
+        <p class="meal-detail-link">詳しい作り方と注意点を見る →</p>
       </div>
-      <div class="meal-card">
-        <p class="meta">夜</p>
+      <div class="meal-card" data-meal-slot="dinner" tabindex="0" role="button" aria-label="${primaryPattern.dinner.name}の詳しい作り方を開く">
+        <div class="meal-heading">
+          <p class="meta">夜</p>
+          <span class="duration-pill">⏱ 約${getMealTime(primaryPattern.dinner)}分</span>
+        </div>
         <h3>${primaryPattern.dinner.name}</h3>
         <p>${primaryPattern.dinner.desc}</p>
-        ${buildGuide(primaryPattern.dinner)}
+        ${buildGuide(primaryPattern.dinner, people)}
         <div class="badges">
           ${primaryPattern.dinner.tags.map((tag) => `<span>${tag}</span>`).join('')}
         </div>
+        <p class="meal-detail-link">詳しい作り方と注意点を見る →</p>
       </div>
       <div class="summary">
         <h3>${summary.heading}</h3>
@@ -370,13 +1080,446 @@ function buildResult(values) {
   `;
 }
 
+function renderPlan(plan, selectedIndex = 0) {
+  resultPanel.currentPlan = plan;
+  resultPanel.currentPlanIndex = selectedIndex;
+  resultPanel.innerHTML = buildResult(plan, selectedIndex);
+  renderHealthMaster();
+}
+
+function getHistory() {
+  return getUserDataValue(historyStorageKey, []);
+}
+
+function saveHistory(plan) {
+  const history = getHistory().filter((item) => getPlanKey(item) !== getPlanKey(plan));
+  history.unshift({ ...plan, createdAt: new Date().toISOString() });
+  setUserDataValue(historyStorageKey, history.slice(0, 10));
+  renderHistory();
+}
+
+function renderHistory() {
+  const history = getHistory();
+  historyCount.textContent = history.length;
+  clearHistoryButton.style.display = history.length ? 'inline-flex' : 'none';
+
+  if (!history.length) {
+    historyList.innerHTML = '<p class="empty-message">履歴はまだありません</p>';
+    return;
+  }
+
+  historyList.innerHTML = history.map((plan, index) => {
+    const pattern = plan.patterns[0];
+    const date = new Date(plan.createdAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+    return `
+      <article class="history-item">
+        <div class="history-item-main">
+          <span class="history-date">${date}に作成</span>
+          <strong>${plan.values.mood}・${plan.values.people}人分</strong>
+          <span>朝 ${pattern.breakfast.name} / 昼 ${pattern.lunch.name} / 夜 ${pattern.dinner.name}</span>
+        </div>
+        <button type="button" class="load-bookmark-btn" data-history-index="${index}">この献立を開く</button>
+      </article>
+    `;
+  }).join('');
+}
+
+function getShoppingChecks() {
+  return getUserDataValue(shoppingChecksStorageKey, {});
+}
+
+function getShoppingKey(plan, mealName, ingredient) {
+  return `${getPlanKey(plan)}-${mealName}-${ingredient}`;
+}
+
+function renderShoppingList() {
+  const plan = resultPanel.currentPlan;
+  if (!plan) {
+    shoppingList.innerHTML = '<p class="empty-message">まず献立を作成してください</p>';
+    return;
+  }
+
+  const selectedPattern = plan.patterns[resultPanel.currentPlanIndex || 0] || plan.patterns[0];
+  const meals = [
+    ['朝', selectedPattern.breakfast],
+    ['昼', selectedPattern.lunch],
+    ['夜', selectedPattern.dinner]
+  ];
+  const checks = getShoppingChecks();
+
+  shoppingList.innerHTML = meals.map(([label, meal]) => `
+    <section class="shopping-group">
+      <h3>${label}・${meal.name}</h3>
+      <div class="shopping-items">
+        ${getMealIngredients(meal).map((ingredient) => {
+          const key = getShoppingKey(plan, meal.name, ingredient);
+          return `
+            <label class="shopping-item">
+              <input type="checkbox" data-shopping-key="${encodeURIComponent(key)}" ${checks[key] ? 'checked' : ''} />
+              <span>${ingredient}</span>
+            </label>
+          `;
+        }).join('')}
+      </div>
+    </section>
+  `).join('');
+}
+
+function getBookmarks() {
+  return getUserDataValue(bookmarksStorageKey, []);
+}
+
+function saveBookmarks(bookmarks) {
+  setUserDataValue(bookmarksStorageKey, bookmarks);
+}
+
+function renderBookmarks() {
+  const bookmarks = getBookmarks();
+  bookmarkCount.textContent = bookmarks.length;
+  clearBookmarksButton.style.display = bookmarks.length ? 'inline-flex' : 'none';
+
+  if (!bookmarks.length) {
+    bookmarksList.innerHTML = `
+      <div class="bookmark-empty-state">
+        <span class="bookmark-empty-icon" aria-hidden="true">🔖</span>
+        <h3>登録しているものはありません。</h3>
+        <p>献立を作成して、気に入ったものをブックマークしてみましょう。</p>
+      </div>
+    `;
+    return;
+  }
+
+  bookmarksList.innerHTML = bookmarks.map((plan, index) => {
+    const primaryPattern = plan.patterns[0];
+    return `
+      <article class="bookmark-item">
+        <div>
+          <strong>${plan.values.mood}・${plan.values.people}人分</strong>
+          <span>朝: ${primaryPattern.breakfast.name}</span>
+          <span>昼: ${primaryPattern.lunch.name}</span>
+          <span>夜: ${primaryPattern.dinner.name}</span>
+        </div>
+        <div class="bookmark-actions">
+          <button type="button" class="load-bookmark-btn" data-bookmark-index="${index}">表示</button>
+          <button type="button" class="delete-bookmark-btn" data-delete-bookmark-index="${index}" aria-label="${plan.values.mood}のブックマークを削除">削除</button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function addBookmark(plan) {
+  const bookmarks = getBookmarks();
+  if (bookmarks.some((bookmark) => getPlanKey(bookmark) === getPlanKey(plan))) {
+    return false;
+  }
+
+  bookmarks.unshift(plan);
+  saveBookmarks(bookmarks);
+  renderBookmarks();
+  return true;
+}
+
+function initializeAuthFlow() {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    setAuthMode('signin');
+    showAuthView('メールアドレスでサインインしてください。');
+    return;
+  }
+
+  showAppView();
+  renderUserData();
+}
+
+function hideSubpages() {
+  bookmarksPage.hidden = true;
+  shoppingPage.hidden = true;
+  historyPage.hidden = true;
+  mealDetailPage.hidden = true;
+  fridgePage.hidden = true;
+  healthLogPage.hidden = true;
+}
+
+function showPlanner() {
+  hideSubpages();
+  plannerView.hidden = false;
+}
+
+bookmarksList.addEventListener('click', (event) => {
+  const loadButton = event.target.closest('[data-bookmark-index]');
+  const deleteButton = event.target.closest('[data-delete-bookmark-index]');
+  const bookmarks = getBookmarks();
+
+  if (loadButton) {
+    const plan = bookmarks[Number(loadButton.dataset.bookmarkIndex)];
+    if (plan) {
+      showPlanner();
+      renderPlan(plan);
+      resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  if (deleteButton) {
+    bookmarks.splice(Number(deleteButton.dataset.deleteBookmarkIndex), 1);
+    saveBookmarks(bookmarks);
+    renderBookmarks();
+  }
+});
+
+clearBookmarksButton.addEventListener('click', () => {
+  saveBookmarks([]);
+  renderBookmarks();
+});
+
+openBookmarksButton.addEventListener('click', () => {
+  hideSubpages();
+  renderBookmarks();
+  plannerView.hidden = true;
+  bookmarksPage.hidden = false;
+  closeBookmarksButton.focus();
+});
+
+closeBookmarksButton.addEventListener('click', () => {
+  showPlanner();
+  openBookmarksButton.focus();
+});
+
+openShoppingButton.addEventListener('click', () => {
+  hideSubpages();
+  renderShoppingList();
+  plannerView.hidden = true;
+  shoppingPage.hidden = false;
+  closeShoppingButton.focus();
+});
+
+closeShoppingButton.addEventListener('click', () => {
+  showPlanner();
+  openShoppingButton.focus();
+});
+
+shoppingList.addEventListener('change', (event) => {
+  if (!event.target.matches('[data-shopping-key]')) return;
+  const checks = getShoppingChecks();
+  checks[decodeURIComponent(event.target.dataset.shoppingKey)] = event.target.checked;
+  setUserDataValue(shoppingChecksStorageKey, checks);
+});
+
+openHistoryButton.addEventListener('click', () => {
+  hideSubpages();
+  renderHistory();
+  plannerView.hidden = true;
+  historyPage.hidden = false;
+  closeHistoryButton.focus();
+});
+
+closeHistoryButton.addEventListener('click', () => {
+  showPlanner();
+  openHistoryButton.focus();
+});
+
+closeMealDetailButton.addEventListener('click', () => {
+  showPlanner();
+  resultPanel.focus();
+});
+
+openFridgeButton.addEventListener('click', () => {
+  hideSubpages();
+  renderFridgeIngredients();
+  fridgeOtherList.innerHTML = '';
+  fridgeOtherInput.value = '';
+  fridgeOtherForm.hidden = true;
+  otherFridgeButton.setAttribute('aria-expanded', 'false');
+  fridgeResults.innerHTML = '<p class="empty-message">食材を選んで「この食材で探す」を押してください。</p>';
+  plannerView.hidden = true;
+  fridgePage.hidden = false;
+  closeFridgeButton.focus();
+});
+
+closeFridgeButton.addEventListener('click', () => {
+  showPlanner();
+  openFridgeButton.focus();
+});
+
+manageHealthLogsButton.addEventListener('click', () => {
+  hideSubpages();
+  renderHealthLogs();
+  plannerView.hidden = true;
+  healthLogPage.hidden = false;
+  closeHealthLogButton.focus();
+});
+
+closeHealthLogButton.addEventListener('click', () => {
+  showPlanner();
+  manageHealthLogsButton.focus();
+});
+
+healthLogList.addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('[data-delete-health-log-index]');
+  if (!deleteButton) return;
+
+  const logs = getEatenLogs();
+  logs.splice(Number(deleteButton.dataset.deleteHealthLogIndex), 1);
+  localStorage.setItem(eatenLogsStorageKey, JSON.stringify(logs));
+  rebuildHealthScores();
+  renderHealthLogs();
+  renderHealthMaster();
+});
+
+clearHealthLogsButton.addEventListener('click', () => {
+  setUserDataValue(eatenLogsStorageKey, []);
+  rebuildHealthScores();
+  renderHealthLogs();
+  renderHealthMaster();
+});
+
+findFridgeMealsButton.addEventListener('click', renderFridgeResults);
+
+fridgeIngredients.addEventListener('click', (event) => {
+  const ingredientButton = event.target.closest('[data-fridge-ingredient]');
+  if (!ingredientButton) return;
+  const pressed = ingredientButton.getAttribute('aria-pressed') === 'true';
+  ingredientButton.setAttribute('aria-pressed', String(!pressed));
+});
+
+otherFridgeButton.addEventListener('click', () => {
+  const isOpen = !fridgeOtherForm.hidden;
+  fridgeOtherForm.hidden = isOpen;
+  otherFridgeButton.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) fridgeOtherInput.focus();
+});
+
+addFridgeOtherButton.addEventListener('click', addCustomFridgeIngredients);
+fridgeOtherInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  addCustomFridgeIngredients();
+});
+
+fridgeOtherList.addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-custom-fridge-ingredient]');
+  if (chip) chip.remove();
+});
+
+clearFridgeButton.addEventListener('click', () => {
+  fridgeIngredients.querySelectorAll('[data-fridge-ingredient]').forEach((button) => {
+    button.setAttribute('aria-pressed', 'false');
+  });
+  fridgeOtherList.innerHTML = '';
+  fridgeOtherInput.value = '';
+  renderFridgeResults();
+});
+
+fridgeResults.addEventListener('click', (event) => {
+  const mealButton = event.target.closest('[data-fridge-meal]');
+  if (!mealButton) return;
+
+  const meal = JSON.parse(decodeURIComponent(mealButton.dataset.fridgeMeal));
+  if (meal) {
+    renderMealDetail(meal, '冷蔵庫レスキュー', document.getElementById('people').value);
+    fridgePage.hidden = true;
+    mealDetailPage.hidden = false;
+    closeMealDetailButton.focus();
+  }
+});
+
+recordHealthButton.addEventListener('click', () => {
+  if (!resultPanel.currentPlan) return;
+  const added = recordEatenPlan(resultPanel.currentPlan, resultPanel.currentPlanIndex || 0);
+  recordHealthButton.textContent = added ? '✓ 今日の食卓を記録しました' : '本日は記録済み';
+  recordHealthButton.disabled = true;
+});
+
+clearHistoryButton.addEventListener('click', () => {
+  setUserDataValue(historyStorageKey, []);
+  renderHistory();
+});
+
+historyList.addEventListener('click', (event) => {
+  const loadButton = event.target.closest('[data-history-index]');
+  if (!loadButton) return;
+
+  const plan = getHistory()[Number(loadButton.dataset.historyIndex)];
+  if (plan) {
+    showPlanner();
+    renderPlan(plan);
+    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
+resultPanel.addEventListener('click', (event) => {
+  const candidateButton = event.target.closest('[data-candidate-index]');
+  if (candidateButton && resultPanel.currentPlan) {
+    renderPlan(resultPanel.currentPlan, Number(candidateButton.dataset.candidateIndex));
+    return;
+  }
+
+  const mealCard = event.target.closest('[data-meal-slot]');
+  if (mealCard && resultPanel.currentPlan) {
+    const slotLabels = { breakfast: '朝', lunch: '昼', dinner: '夜' };
+    const selectedPattern = resultPanel.currentPlan.patterns[resultPanel.currentPlanIndex || 0] || resultPanel.currentPlan.patterns[0];
+    const meal = selectedPattern[mealCard.dataset.mealSlot];
+    if (meal) {
+      renderMealDetail(meal, slotLabels[mealCard.dataset.mealSlot], resultPanel.currentPlan.values.people);
+      plannerView.hidden = true;
+      hideSubpages();
+      mealDetailPage.hidden = false;
+      closeMealDetailButton.focus();
+    }
+    return;
+  }
+
+  const recordButton = event.target.closest('[data-record-eaten]');
+  if (recordButton && resultPanel.currentPlan) {
+    const added = recordEatenPlan(resultPanel.currentPlan, resultPanel.currentPlanIndex || 0);
+    recordButton.textContent = added ? '✓ 今日の食卓を記録しました' : '本日は記録済み';
+    recordButton.disabled = true;
+    return;
+  }
+
+  const bookmarkButton = event.target.closest('[data-bookmark-plan]');
+  if (!bookmarkButton) return;
+
+  const plan = JSON.parse(decodeURIComponent(bookmarkButton.dataset.bookmarkPlan));
+  const added = addBookmark(plan);
+  bookmarkButton.textContent = added ? '✓ ブックマークしました' : '✓ 保存済みの献立です';
+  bookmarkButton.disabled = true;
+});
+
+resultPanel.addEventListener('keydown', (event) => {
+  if ((event.key !== 'Enter' && event.key !== ' ') || !event.target.matches('[data-meal-slot]')) return;
+  event.preventDefault();
+  event.target.click();
+});
+
+authForm.addEventListener('submit', handleAuthSubmit);
+authSwitchButton.addEventListener('click', () => {
+  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+  authEmailInput.focus();
+});
+devLoginButton.addEventListener('click', handleDeveloperLogin);
+logoutButton.addEventListener('click', handleLogout);
+
 form.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!getCurrentUser()) {
+    showAuthView('献立を作成するにはログインしてください。');
+    return;
+  }
+
   const values = {
     mood: document.getElementById('mood').value,
     balance: document.getElementById('balance').value,
     people: document.getElementById('people').value,
     budget: document.getElementById('budget').value
   };
-  resultPanel.innerHTML = buildResult(values);
+  const plan = createPlan(values);
+  renderPlan(plan);
+  saveHistory(plan);
 });
+
+initializeAuthFlow();
+
+renderBookmarks();
+renderHistory();
+renderHealthMaster();
