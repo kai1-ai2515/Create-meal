@@ -71,28 +71,14 @@ const exportDataButton = document.getElementById('export-data-btn');
 const resetLocalDataButton = document.getElementById('reset-local-data-btn');
 const deleteAccountPasswordInput = document.getElementById('delete-account-password');
 const deleteAccountButton = document.getElementById('delete-account-btn');
+const vocAdminPage = document.getElementById('voc-admin-page');
 const appShell = document.querySelector('.app-shell');
-const accountsStorageKey = 'meal-planner-accounts';
-const currentUserStorageKey = 'meal-planner-current-user';
 const userDataStoragePrefix = 'meal-planner-user-data:';
-const developerAccount = {
-  email: 'dev@create-meal.local',
-  password: 'kai1.meal'
-};
+const supabaseConfig = window.MEAL_SUPABASE_CONFIG || {};
+const supabaseClient = window.mealSupabaseClient;
 let authMode = 'signin';
-
-function getAccounts() {
-  try {
-    return JSON.parse(localStorage.getItem(accountsStorageKey)) || [];
-  } catch (error) {
-    console.warn('アカウント情報を読み込めませんでした', error);
-    return [];
-  }
-}
-
-function saveAccounts(accounts) {
-  localStorage.setItem(accountsStorageKey, JSON.stringify(accounts));
-}
+let currentUser = null;
+let vocCurrentView = 'inbox';
 
 function getSafeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -103,26 +89,20 @@ function getUserDataKey(email) {
 }
 
 function getCurrentUser() {
-  try {
-    const user = JSON.parse(localStorage.getItem(currentUserStorageKey));
-    if (!user || !getSafeEmail(user.email)) {
-      clearCurrentUser();
-      return null;
-    }
-    return user;
-  } catch (error) {
-    console.warn('ログインユーザーを読み込めませんでした', error);
-    clearCurrentUser();
-    return null;
-  }
+  return currentUser;
 }
 
 function setCurrentUser(user) {
-  localStorage.setItem(currentUserStorageKey, JSON.stringify(user));
+  currentUser = {
+    id: user.id,
+    email: user.email,
+    createdAt: user.createdAt || user.created_at || null,
+    role: user.role || 'user'
+  };
 }
 
 function clearCurrentUser() {
-  localStorage.removeItem(currentUserStorageKey);
+  currentUser = null;
 }
 
 function loadUserData() {
@@ -198,15 +178,15 @@ function renderMypageProfile() {
 function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
-  emailField.classList.toggle('hidden', isDeveloperMode);
-  authEmailInput.required = !isDeveloperMode;
-  authEmailInput.disabled = isDeveloperMode;
-  authPasswordInput.minLength = isDeveloperMode ? 1 : 6;
-  authForm.noValidate = isDeveloperMode;
+  emailField.classList.remove('hidden');
+  authEmailInput.required = true;
+  authEmailInput.disabled = false;
+  authPasswordInput.minLength = 6;
+  authForm.noValidate = false;
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? '開発者専用ログインです。パスワードを入力してください。'
+    ? '開発者用Supabaseアカウントのメールアドレスとパスワードを入力してください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : '新しいメールアドレスでアカウントを作成します。';
@@ -221,6 +201,7 @@ function showAuthView(message = '') {
 
 function showAppView() {
   syncCurrentUserBadge();
+  mypageButton.textContent = getCurrentUser()?.role === 'developer' ? 'VOC管理' : 'マイページ';
   authView.hidden = true;
   appShell.hidden = false;
   renderUserData();
@@ -231,9 +212,8 @@ function completeSuccessfulLogin(user) {
   authForm.reset();
   authPasswordInput.value = '';
   showAppView();
-  if (user.role !== 'developer') {
-    openMypage();
-  }
+  if (currentUser.role === 'developer') openVocAdminPage();
+  else openMypage();
 }
 
 function renderUserData() {
@@ -243,31 +223,15 @@ function renderUserData() {
   renderHealthLogs();
 }
 
-function handleAuthSubmit(event) {
+async function handleAuthSubmit(event) {
   event.preventDefault();
-  const email = authEmailInput.value.trim();
-  const password = authPasswordInput.value.trim();
-
-  if (authMode === 'developer') {
-    if (!password) {
-      authMessage.textContent = '開発者パスワードを入力してください。';
-      return;
-    }
-
-    if (password !== developerAccount.password) {
-      authMessage.textContent = '開発者パスワードが違います。';
-      return;
-    }
-
-    const devUser = {
-      email: developerAccount.email,
-      password: developerAccount.password,
-      role: 'developer',
-      createdAt: new Date().toISOString()
-    };
-    completeSuccessfulLogin(devUser);
+  if (!supabaseClient) {
+    authMessage.textContent = 'Supabaseの接続設定が必要です。管理者にお問い合わせください。';
     return;
   }
+
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value.trim();
 
   if (!email || !password) {
     authMessage.textContent = 'メールアドレスとパスワードを入力してください。';
@@ -285,41 +249,51 @@ function handleAuthSubmit(event) {
     return;
   }
 
-  const accounts = getAccounts();
+  const normalizedEmail = getSafeEmail(email);
+  const request = authMode === 'signup'
+    ? await supabaseClient.auth.signUp({ email: normalizedEmail, password })
+    : await supabaseClient.auth.signInWithPassword({ email: normalizedEmail, password });
 
-  if (authMode === 'signup') {
-    const existing = accounts.find((account) => getSafeEmail(account.email) === getSafeEmail(email));
-    if (existing) {
-      authMessage.textContent = 'そのメールアドレスはすでに登録されています。サインインしてください。';
-      setAuthMode('signin');
-      return;
-    }
+  if (request.error) {
+    authMessage.textContent = request.error.message || '認証に失敗しました。入力内容をご確認ください。';
+    return;
+  }
 
-    const newUser = {
-      email: email.toLowerCase(),
-      password,
-      createdAt: new Date().toISOString()
-    };
-    accounts.push(newUser);
-    saveAccounts(accounts);
+  if (authMode === 'signup' && !request.data.session) {
     authForm.reset();
     setAuthMode('signin');
-    showAuthView('アカウント登録が完了しました。登録したメールアドレスとパスワードでサインインしてください。');
+    showAuthView('確認メールを送信しました。メール内のリンクから登録を完了してからサインインしてください。');
     return;
   }
 
-  const matched = accounts.find(
-    (account) => getSafeEmail(account.email) === getSafeEmail(email) && account.password === password
-  );
-  if (!matched) {
-    authMessage.textContent = 'メールアドレスまたはパスワードが正しくありません。';
+  const authUser = request.data.user || request.data.session?.user;
+  if (!authUser) {
+    authMessage.textContent = '認証情報を確認できませんでした。もう一度お試しください。';
     return;
   }
 
-  completeSuccessfulLogin(matched);
+  const { data: isDeveloper, error: roleError } = await supabaseClient.rpc('is_current_user_developer');
+  if (roleError) {
+    await supabaseClient.auth.signOut();
+    authMessage.textContent = 'VOCの権限設定が未完了です。管理者にお問い合わせください。';
+    return;
+  }
+  if (authMode === 'developer' && !isDeveloper) {
+    await supabaseClient.auth.signOut();
+    authMessage.textContent = 'このアカウントには開発者権限がありません。';
+    return;
+  }
+
+  completeSuccessfulLogin({
+    id: authUser.id,
+    email: authUser.email,
+    createdAt: authUser.created_at,
+    role: isDeveloper ? 'developer' : 'user'
+  });
 }
 
-function handleLogout() {
+async function handleLogout() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
   clearCurrentUser();
   authForm.reset();
   mypageForm.reset();
@@ -327,7 +301,7 @@ function handleLogout() {
   setAuthMode('signin');
   syncCurrentUserBadge();
   mypagePanel.hidden = true;
-  showAuthView('ログアウトしました。無料アカウントで再度サインインしてください。');
+  showAuthView('ログアウトしました。メールアドレスとパスワードで再度サインインしてください。');
 }
 
 function openMypage() {
@@ -336,12 +310,17 @@ function openMypage() {
     showAuthView('マイページを開くにはログインしてください。');
     return;
   }
+  if (user.role === 'developer') {
+    openVocAdminPage();
+    return;
+  }
 
   hideSubpages();
   mypagePanel.hidden = false;
   plannerView.hidden = true;
   renderMypageProfile();
   mypageMessage.textContent = '';
+  window.vocManager?.loadMine();
 }
 
 function closeMypage() {
@@ -349,7 +328,20 @@ function closeMypage() {
   showPlanner();
 }
 
-function handleMypageSubmit(event) {
+function openVocAdminPage() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    showAuthView('VOC管理は開発者アカウントでログインしてください。');
+    return;
+  }
+
+  hideSubpages();
+  plannerView.hidden = true;
+  vocAdminPage.hidden = false;
+  window.vocManager?.loadAdmin();
+}
+
+async function handleMypageSubmit(event) {
   event.preventDefault();
   const user = getCurrentUser();
   if (!user) {
@@ -372,7 +364,11 @@ function handleMypageSubmit(event) {
     return;
   }
 
-  if (user.password !== currentPassword) {
+  const { error: reauthError } = await supabaseClient.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword
+  });
+  if (reauthError) {
     mypageMessage.textContent = '現在のパスワードが違います。';
     return;
   }
@@ -387,47 +383,35 @@ function handleMypageSubmit(event) {
     return;
   }
 
-  const accounts = getAccounts();
   const normalizedNextEmail = nextEmail.toLowerCase();
-  const currentEmailKey = getSafeEmail(user.email);
-  const nextEmailKey = getSafeEmail(normalizedNextEmail);
-
-  if (currentEmailKey !== nextEmailKey && accounts.some((account) => getSafeEmail(account.email) === nextEmailKey)) {
-    mypageMessage.textContent = 'そのメールアドレスはすでに登録されています。';
+  const updates = {};
+  if (getSafeEmail(normalizedNextEmail) !== getSafeEmail(user.email)) updates.email = normalizedNextEmail;
+  if (newPassword) updates.password = newPassword;
+  if (Object.keys(updates).length === 0) {
+    mypageMessage.textContent = '変更する項目がありません。';
     return;
   }
 
-  const updatedPassword = newPassword || user.password;
-  const updatedUser = {
-    ...user,
-    email: normalizedNextEmail,
-    password: updatedPassword
-  };
-
-  const updatedAccounts = accounts.map((account) => {
-    if (getSafeEmail(account.email) === currentEmailKey) {
-      return {
-        ...account,
-        email: normalizedNextEmail,
-        password: updatedPassword
-      };
-    }
-    return account;
-  });
-
-  const originalUserData = loadUserData();
-  const oldUserDataKey = getUserDataKey(user.email);
-  const nextUserDataKey = getUserDataKey(normalizedNextEmail);
-
-  if (oldUserDataKey !== nextUserDataKey) {
-    localStorage.removeItem(oldUserDataKey);
+  const { data, error } = await supabaseClient.auth.updateUser(updates);
+  if (error) {
+    mypageMessage.textContent = error.message || 'アカウント情報を更新できませんでした。';
+    return;
   }
-  localStorage.setItem(nextUserDataKey, JSON.stringify(originalUserData));
-  saveAccounts(updatedAccounts);
-  setCurrentUser(updatedUser);
+
+  const updatedEmail = data.user.email || user.email;
+  if (updatedEmail !== user.email) {
+    const originalUserData = loadUserData();
+    localStorage.removeItem(getUserDataKey(user.email));
+    localStorage.setItem(getUserDataKey(updatedEmail), JSON.stringify(originalUserData));
+  }
+  setCurrentUser({ ...user, email: updatedEmail });
   syncCurrentUserBadge();
   renderMypageProfile();
-  mypageMessage.textContent = 'アカウント情報を更新しました。';
+  const pendingEmailConfirmation = updates.email && updatedEmail !== normalizedNextEmail;
+  if (pendingEmailConfirmation) mypageEmailInput.value = normalizedNextEmail;
+  mypageMessage.textContent = pendingEmailConfirmation
+    ? '確認メールを送信しました。メールのリンクから変更を完了してください。'
+    : 'アカウント情報を更新しました。';
 }
 
 function exportUserData() {
@@ -482,7 +466,7 @@ function resetUserLocalData() {
   mypageMessage.textContent = '保存済みデータを削除しました。';
 }
 
-function handleDeleteAccount() {
+async function handleDeleteAccount() {
   const user = getCurrentUser();
   if (!user) {
     showAuthView('ログインしてください。');
@@ -495,19 +479,28 @@ function handleDeleteAccount() {
     return;
   }
 
-  if (user.password !== password) {
+  const { error: reauthError } = await supabaseClient.auth.signInWithPassword({
+    email: user.email,
+    password
+  });
+  if (reauthError) {
     mypageMessage.textContent = '現在のパスワードが違います。';
     return;
   }
 
-  const confirmed = window.confirm('本当にアカウントを削除しますか？ 保存したデータもすべて削除されます。');
+  const confirmed = window.confirm('本当にアカウントを削除しますか？ 保存データと送信済みVOCもすべて削除されます。');
   if (!confirmed) {
     return;
   }
 
-  const accounts = getAccounts().filter((account) => getSafeEmail(account.email) !== getSafeEmail(user.email));
-  saveAccounts(accounts);
+  const { error } = await supabaseClient.rpc('delete_my_account');
+  if (error) {
+    mypageMessage.textContent = 'アカウントを削除できませんでした。管理者にお問い合わせください。';
+    return;
+  }
+
   localStorage.removeItem(getUserDataKey(user.email));
+  await supabaseClient.auth.signOut({ scope: 'local' });
   clearCurrentUser();
   deleteAccountPasswordInput.value = '';
   authForm.reset();
@@ -530,9 +523,9 @@ function togglePasswordVisibility(event) {
 }
 
 function handleDeveloperLogin() {
-  authEmailInput.value = developerAccount.email;
+  authEmailInput.value = '';
   authPasswordInput.value = '';
-  authPasswordInput.focus();
+  authEmailInput.focus();
   setAuthMode('developer');
 }
 
@@ -1471,16 +1464,40 @@ function addBookmark(plan) {
   return true;
 }
 
-function initializeAuthFlow() {
-  const currentUser = getCurrentUser();
-  if (!currentUser) {
+async function initializeAuthFlow() {
+  if (!supabaseClient) {
     setAuthMode('signin');
-    showAuthView('メールアドレスでサインインしてください。');
+    showAuthView('Supabaseの接続設定が必要です。管理者にお問い合わせください。');
     return;
   }
 
-  showAppView();
-  renderUserData();
+  localStorage.removeItem('meal-planner-accounts');
+  localStorage.removeItem('meal-planner-current-user');
+
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    if (!data.session) {
+      setAuthMode('signin');
+      showAuthView('メールアドレスでサインインしてください。');
+      return;
+    }
+
+    const authUser = data.session.user;
+    const { data: isDeveloper, error: roleError } = await supabaseClient.rpc('is_current_user_developer');
+    if (roleError) throw roleError;
+    completeSuccessfulLogin({
+      id: authUser.id,
+      email: authUser.email,
+      createdAt: authUser.created_at,
+      role: isDeveloper ? 'developer' : 'user'
+    });
+  } catch (error) {
+    console.error('Supabaseのセッションを復元できませんでした', error);
+    await supabaseClient.auth.signOut();
+    setAuthMode('signin');
+    showAuthView('ログイン状態を確認できませんでした。もう一度サインインしてください。');
+  }
 }
 
 function hideSubpages() {
@@ -1491,6 +1508,7 @@ function hideSubpages() {
   fridgePage.hidden = true;
   healthLogPage.hidden = true;
   mypagePanel.hidden = true;
+  vocAdminPage.hidden = true;
 }
 
 function showPlanner() {

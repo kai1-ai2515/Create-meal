@@ -12,7 +12,7 @@
         <p class="auth-kicker">無料アカウント登録</p>
         <h1>今日の献立プランナー</h1>
         <p class="auth-copy">
-          無料でアカウント登録すると、献立・履歴・ブックマークを保存できます。
+          献立や履歴を保存し、カスタマーセンターからご意見を送信できます。以前の端末内アカウントは引き継がれないため、再登録をお願いします。
         </p>
 
         <form id="auth-form" class="auth-form">
@@ -334,9 +334,45 @@
             </div>
           </section>
 
+          <section class="mypage-card customer-center-card">
+            <h3>カスタマーセンター</h3>
+            <p>ご意見・ご要望やお困りの内容を送信できます。送信内容はアカウントに紐づきます。</p>
+            <p class="voc-privacy-note">登録メールアドレスと送信内容は開発者が確認します。パスワードやカード情報などの機密情報は入力しないでください。</p>
+            <form id="voc-submit-form" class="voc-form">
+              <label>
+                お問い合わせの種類
+                <select id="voc-category" required>
+                  <option value="改善要望">改善要望</option>
+                  <option value="不具合">不具合</option>
+                  <option value="質問">質問</option>
+                  <option value="その他">その他</option>
+                </select>
+              </label>
+              <label>
+                件名
+                <input id="voc-subject" type="text" maxlength="120" required placeholder="お問い合わせの要点" />
+              </label>
+              <label>
+                内容
+                <textarea id="voc-message" maxlength="4000" rows="5" required placeholder="状況やご希望を入力してください"></textarea>
+              </label>
+              <div class="voc-submit-row">
+                <span id="voc-character-count">0 / 4000</span>
+                <button id="voc-submit-btn" type="submit">送信する</button>
+              </div>
+              <p id="voc-submit-message" class="mypage-message" aria-live="polite"></p>
+            </form>
+            <div class="my-voc-section">
+              <h4>送信したお問い合わせ</h4>
+              <div id="my-voc-list" class="my-voc-list">
+                <p class="empty-message">お問い合わせはまだありません。</p>
+              </div>
+            </div>
+          </section>
+
           <section class="mypage-card danger-card">
             <h3>アカウント削除</h3>
-            <p>アカウントと保存した献立・履歴・ブックマークをすべて削除します。</p>
+            <p>アカウントと保存した献立・履歴・ブックマーク、送信済みのお問い合わせをすべて削除します。</p>
             <label>
               現在のパスワード
               <div class="password-input-row">
@@ -348,8 +384,65 @@
           </section>
         </div>
       </section>
+
+      <section class="panel subpage voc-admin-page" id="voc-admin-page" hidden>
+        <div class="subpage-header">
+          <button id="close-voc-admin-btn" class="back-btn" type="button">← 献立作成に戻る</button>
+          <span class="subpage-kicker">開発者専用</span>
+        </div>
+        <div class="voc-admin-heading">
+          <div>
+            <p class="health-kicker">VOICE OF CUSTOMER</p>
+            <h2>VOC管理</h2>
+          </div>
+          <div class="voc-admin-account-actions">
+            <span id="voc-total-count" class="health-month">0件</span>
+            <button id="voc-logout-btn" class="secondary-btn" type="button">ログアウト</button>
+          </div>
+        </div>
+        <div class="voc-admin-toolbar">
+          <div class="voc-tabs" role="group" aria-label="表示するVOC">
+            <button id="voc-inbox-tab" class="voc-tab is-active" type="button" aria-pressed="true">受信箱</button>
+            <button id="voc-trash-tab" class="voc-tab" type="button" aria-pressed="false">ゴミ箱</button>
+          </div>
+          <label class="voc-search-label">
+            <span class="visually-hidden">VOCを検索</span>
+            <input id="voc-search" type="search" placeholder="件名・内容・ユーザーを検索" />
+          </label>
+          <label class="voc-status-filter-label">
+            <span class="visually-hidden">対応状況で絞り込む</span>
+            <select id="voc-status-filter">
+              <option value="all">すべての状態</option>
+              <option value="未対応">未対応</option>
+              <option value="対応中">対応中</option>
+              <option value="対応済み">対応済み</option>
+            </select>
+          </label>
+          <button id="voc-refresh-btn" class="secondary-btn" type="button">更新</button>
+        </div>
+        <p id="voc-admin-message" class="mypage-message" aria-live="polite"></p>
+        <div class="voc-table-scroll">
+          <table class="voc-table">
+            <thead>
+              <tr>
+                <th scope="col">受信日時</th>
+                <th scope="col">アカウント</th>
+                <th scope="col">お問い合わせ</th>
+                <th scope="col">対応状況</th>
+                <th scope="col">処理</th>
+              </tr>
+            </thead>
+            <tbody id="voc-table-body">
+              <tr><td colspan="5" class="empty-message">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
-    <script src="script.js?v=20261008-mypage-user-login"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="supabase-config.js?v=20261008-voc-setup"></script>
+    <script src="voc.js?v=20261008-voc-setup"></script>
+    <script src="script.js?v=20261008-voc-setup"></script>
   </body>
 </html>
