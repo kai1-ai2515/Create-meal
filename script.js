@@ -231,6 +231,9 @@ function completeSuccessfulLogin(user) {
   authForm.reset();
   authPasswordInput.value = '';
   showAppView();
+  if (user.role !== 'developer') {
+    openMypage();
+  }
 }
 
 function renderUserData() {
