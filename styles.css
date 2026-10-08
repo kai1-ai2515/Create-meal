@@ -503,6 +503,66 @@ body {
   background: #fff2e4;
 }
 
+.health-criteria {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.health-criteria summary {
+  color: var(--accent-strong);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.health-criteria > p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.health-criteria-list {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.health-criteria-list div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #fff8ef;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.health-criteria-list dt {
+  color: var(--text);
+}
+
+.health-criteria-list dd {
+  margin: 0;
+  color: var(--accent-strong);
+  font-weight: 700;
+  text-align: right;
+}
+
+.health-criteria > .health-criteria-levels {
+  color: var(--text);
+}
+
+.health-criteria > .health-evidence {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+
 .health-evidence,
 .health-sources {
   color: var(--muted);

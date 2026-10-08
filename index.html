@@ -98,10 +98,23 @@
             <button id="record-health-btn" class="health-record-btn" type="button" disabled>食べた献立を記録</button>
             <button id="manage-health-logs-btn" class="health-manage-btn" type="button">記録を管理</button>
           </div>
-          <p class="health-evidence">研究知見を参考にした食事バランスの目安です。診断や治療の代わりにはなりません。</p>
+          <details class="health-criteria" open>
+            <summary>点数の基準を見る</summary>
+            <p>食べた献立を1日ごとに採点し、今月分の平均を四捨五入して表示します。配点は次のとおりです。</p>
+            <dl class="health-criteria-list">
+              <div><dt>基礎点</dt><dd>35点</dd></div>
+              <div><dt>栄養バランスの選択</dt><dd>12〜20点</dd></div>
+              <div><dt>野菜を含む料理</dt><dd>1品につき +5点</dd></div>
+              <div><dt>たんぱく質を含む料理</dt><dd>1品につき +3点</dd></div>
+              <div><dt>食物繊維を含む料理</dt><dd>1品につき +3点</dd></div>
+              <div><dt>1日分の上限</dt><dd>100点</dd></div>
+            </dl>
+            <p class="health-criteria-levels"><strong>ランク:</strong> 80点以上 とても良好 / 65〜79点 良好 / 50〜64点 まずまず / 50点未満 見直しポイントあり</p>
+            <p class="health-evidence">料理名や登録タグを使ったアプリ独自の簡易目安です。実際の量や調理法は反映せず、栄養評価・診断ではありません。</p>
+          </details>
           <details class="health-sources">
-            <summary>算出の参考にした研究</summary>
-            <p>野菜・果物、豆類、全粒穀物などの摂取と健康アウトカムの関連を調べた系統的レビューを参考にしています。</p>
+            <summary>食事バランスに関する参考研究</summary>
+            <p>以下の研究は食事パターンと健康アウトカムに関するもので、このアプリの点数式を検証したものではありません。</p>
             <p>参考: Schwingshackl et al., <cite>American Journal of Clinical Nutrition</cite>, 2017, DOI: 10.3945/ajcn.117.153148</p>
           </details>
         </section>
