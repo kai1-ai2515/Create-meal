@@ -60,11 +60,15 @@ const mypageButton = document.getElementById('mypage-btn');
 const mypagePanel = document.getElementById('mypage-panel');
 const mypageForm = document.getElementById('mypage-form');
 const mypageEmailInput = document.getElementById('mypage-email');
+const mypageCreatedAt = document.getElementById('mypage-created-at');
 const mypageCurrentPasswordInput = document.getElementById('mypage-current-password');
 const mypageNewPasswordInput = document.getElementById('mypage-new-password');
+const mypageNewPasswordConfirmInput = document.getElementById('mypage-new-password-confirm');
 const mypageMessage = document.getElementById('mypage-message');
 const closeMypageButton = document.getElementById('close-mypage-btn');
 const logoutFromMypageButton = document.getElementById('logout-from-mypage-btn');
+const exportDataButton = document.getElementById('export-data-btn');
+const resetLocalDataButton = document.getElementById('reset-local-data-btn');
 const deleteAccountPasswordInput = document.getElementById('delete-account-password');
 const deleteAccountButton = document.getElementById('delete-account-btn');
 const appShell = document.querySelector('.app-shell');
@@ -157,6 +161,38 @@ function setUserDataValue(key, value) {
 function syncCurrentUserBadge() {
   const user = getCurrentUser();
   currentUserName.textContent = user ? user.email : '未ログイン';
+}
+
+function formatCreatedAt(dateString) {
+  if (!dateString) return '未設定';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '未設定';
+  return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric' });
+}
+
+function setPasswordVisibility(inputId, visible) {
+  const target = document.getElementById(inputId);
+  if (!target) return;
+  target.type = visible ? 'text' : 'password';
+}
+
+function renderMypageProfile() {
+  const user = getCurrentUser();
+  if (!user) {
+    mypageCreatedAt.textContent = '未設定';
+    mypageEmailInput.value = '';
+    mypageCurrentPasswordInput.value = '';
+    mypageNewPasswordInput.value = '';
+    mypageNewPasswordConfirmInput.value = '';
+    return;
+  }
+
+  mypageCreatedAt.textContent = formatCreatedAt(user.createdAt);
+  mypageEmailInput.value = user.email;
+  mypageCurrentPasswordInput.value = '';
+  mypageNewPasswordInput.value = '';
+  mypageNewPasswordConfirmInput.value = '';
+  deleteAccountPasswordInput.value = '';
 }
 
 function setAuthMode(nextMode) {
@@ -301,10 +337,7 @@ function openMypage() {
   hideSubpages();
   mypagePanel.hidden = false;
   plannerView.hidden = true;
-  mypageEmailInput.value = user.email;
-  mypageCurrentPasswordInput.value = '';
-  mypageNewPasswordInput.value = '';
-  deleteAccountPasswordInput.value = '';
+  renderMypageProfile();
   mypageMessage.textContent = '';
 }
 
@@ -324,6 +357,7 @@ function handleMypageSubmit(event) {
   const nextEmail = mypageEmailInput.value.trim();
   const currentPassword = mypageCurrentPasswordInput.value.trim();
   const newPassword = mypageNewPasswordInput.value.trim();
+  const passwordConfirm = mypageNewPasswordConfirmInput.value.trim();
 
   if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
     mypageMessage.textContent = '正しいメールアドレスを入力してください。';
@@ -340,6 +374,16 @@ function handleMypageSubmit(event) {
     return;
   }
 
+  if (newPassword && newPassword.length < 6) {
+    mypageMessage.textContent = '新しいパスワードは6文字以上で入力してください。';
+    return;
+  }
+
+  if (newPassword && newPassword !== passwordConfirm) {
+    mypageMessage.textContent = '新しいパスワードが確認用と一致しません。';
+    return;
+  }
+
   const accounts = getAccounts();
   const normalizedNextEmail = nextEmail.toLowerCase();
   const currentEmailKey = getSafeEmail(user.email);
@@ -347,11 +391,6 @@ function handleMypageSubmit(event) {
 
   if (currentEmailKey !== nextEmailKey && accounts.some((account) => getSafeEmail(account.email) === nextEmailKey)) {
     mypageMessage.textContent = 'そのメールアドレスはすでに登録されています。';
-    return;
-  }
-
-  if (newPassword && newPassword.length < 6) {
-    mypageMessage.textContent = '新しいパスワードは6文字以上で入力してください。';
     return;
   }
 
@@ -384,10 +423,60 @@ function handleMypageSubmit(event) {
   saveAccounts(updatedAccounts);
   setCurrentUser(updatedUser);
   syncCurrentUserBadge();
+  renderMypageProfile();
   mypageMessage.textContent = 'アカウント情報を更新しました。';
-  mypageCurrentPasswordInput.value = '';
-  mypageNewPasswordInput.value = '';
-  mypageEmailInput.value = updatedUser.email;
+}
+
+function exportUserData() {
+  const user = getCurrentUser();
+  if (!user) {
+    showAuthView('ログインしてください。');
+    return;
+  }
+
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    account: {
+      email: user.email,
+      createdAt: user.createdAt || null,
+      role: user.role || 'user'
+    },
+    data: {
+      bookmarks: getBookmarks(),
+      history: getHistory(),
+      shoppingChecks: getShoppingChecks(),
+      healthScores: getHealthScores(),
+      eatenLogs: getEatenLogs()
+    }
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${getSafeEmail(user.email).replace(/[^a-z0-9._-]/g, '_')}-meal-data.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  mypageMessage.textContent = '保存データをダウンロードしました。';
+}
+
+function resetUserLocalData() {
+  const user = getCurrentUser();
+  if (!user) {
+    showAuthView('ログインしてください。');
+    return;
+  }
+
+  const confirmed = window.confirm('保存済みの献立・履歴・ブックマークを削除しますか？');
+  if (!confirmed) {
+    return;
+  }
+
+  localStorage.removeItem(getUserDataKey(user.email));
+  renderUserData();
+  mypageMessage.textContent = '保存済みデータを削除しました。';
 }
 
 function handleDeleteAccount() {
@@ -422,6 +511,19 @@ function handleDeleteAccount() {
   mypageForm.reset();
   setAuthMode('signin');
   showAuthView('アカウントを削除しました。もう一度登録してご利用ください。');
+}
+
+function togglePasswordVisibility(event) {
+  const toggleButton = event.target.closest('[data-password-toggle]');
+  if (!toggleButton) return;
+
+  const inputId = toggleButton.dataset.passwordToggle;
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  const isVisible = input.type === 'text';
+  setPasswordVisibility(inputId, !isVisible);
+  toggleButton.textContent = isVisible ? '表示' : '非表示';
 }
 
 function handleDeveloperLogin() {
@@ -1649,7 +1751,15 @@ mypageButton.addEventListener('click', openMypage);
 closeMypageButton.addEventListener('click', closeMypage);
 mypageForm.addEventListener('submit', handleMypageSubmit);
 logoutFromMypageButton.addEventListener('click', handleLogout);
+exportDataButton.addEventListener('click', exportUserData);
+resetLocalDataButton.addEventListener('click', resetUserLocalData);
 deleteAccountButton.addEventListener('click', handleDeleteAccount);
+document.addEventListener('click', (event) => {
+  const toggleButton = event.target.closest('[data-password-toggle]');
+  if (toggleButton) {
+    togglePasswordVisibility(event);
+  }
+});
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();

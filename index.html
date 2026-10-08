@@ -269,6 +269,10 @@
         <div class="mypage-grid">
           <section class="mypage-card">
             <h3>アカウント情報</h3>
+            <div class="account-summary">
+              <span>登録日</span>
+              <strong id="mypage-created-at">未設定</strong>
+            </div>
             <form id="mypage-form" class="mypage-form">
               <label>
                 メールアドレス
@@ -277,12 +281,26 @@
 
               <label>
                 現在のパスワード
-                <input id="mypage-current-password" type="password" maxlength="32" placeholder="現在のパスワード" autocomplete="current-password" required />
+                <div class="password-input-row">
+                  <input id="mypage-current-password" type="password" maxlength="32" placeholder="現在のパスワード" autocomplete="current-password" required />
+                  <button type="button" class="ghost-btn" data-password-toggle="mypage-current-password">表示</button>
+                </div>
               </label>
 
               <label>
                 新しいパスワード（変更する場合のみ）
-                <input id="mypage-new-password" type="password" minlength="6" maxlength="32" placeholder="6文字以上" autocomplete="new-password" />
+                <div class="password-input-row">
+                  <input id="mypage-new-password" type="password" minlength="6" maxlength="32" placeholder="6文字以上" autocomplete="new-password" />
+                  <button type="button" class="ghost-btn" data-password-toggle="mypage-new-password">表示</button>
+                </div>
+              </label>
+
+              <label>
+                新しいパスワード（確認）
+                <div class="password-input-row">
+                  <input id="mypage-new-password-confirm" type="password" minlength="6" maxlength="32" placeholder="もう一度入力" autocomplete="new-password" />
+                  <button type="button" class="ghost-btn" data-password-toggle="mypage-new-password-confirm">表示</button>
+                </div>
               </label>
 
               <div class="mypage-actions">
@@ -294,12 +312,24 @@
             </form>
           </section>
 
+          <section class="mypage-card">
+            <h3>データ管理</h3>
+            <p>保存済みの献立・履歴・ブックマークをバックアップしたり、端末内の保存データを整理できます。</p>
+            <div class="mypage-actions stack-actions">
+              <button id="export-data-btn" type="button" class="secondary-btn">データをダウンロード</button>
+              <button id="reset-local-data-btn" type="button" class="secondary-btn">保存済みデータを削除</button>
+            </div>
+          </section>
+
           <section class="mypage-card danger-card">
             <h3>アカウント削除</h3>
             <p>アカウントと保存した献立・履歴・ブックマークをすべて削除します。</p>
             <label>
               現在のパスワード
-              <input id="delete-account-password" type="password" maxlength="32" placeholder="削除確認用のパスワード" autocomplete="current-password" />
+              <div class="password-input-row">
+                <input id="delete-account-password" type="password" maxlength="32" placeholder="削除確認用のパスワード" autocomplete="current-password" />
+                <button type="button" class="ghost-btn" data-password-toggle="delete-account-password">表示</button>
+              </div>
             </label>
             <button id="delete-account-btn" type="button" class="danger-btn">アカウントを削除</button>
           </section>
