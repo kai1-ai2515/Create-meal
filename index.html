@@ -46,7 +46,7 @@
           <span>無料アカウント</span>
           <strong id="current-user-name">未ログイン</strong>
         </div>
-        <button id="logout-btn" class="logout-btn" type="button">ログアウト</button>
+        <button id="mypage-btn" class="mypage-btn" type="button">マイページ</button>
       </header>
 
       <header class="hero">
@@ -259,8 +259,54 @@
           <p class="empty-message">記録はまだありません</p>
         </div>
       </section>
+
+      <section class="panel subpage mypage-panel" id="mypage-panel" hidden>
+        <div class="subpage-header">
+          <button id="close-mypage-btn" class="back-btn" type="button">← 献立作成に戻る</button>
+        </div>
+        <h2>マイページ</h2>
+
+        <div class="mypage-grid">
+          <section class="mypage-card">
+            <h3>アカウント情報</h3>
+            <form id="mypage-form" class="mypage-form">
+              <label>
+                メールアドレス
+                <input id="mypage-email" type="email" maxlength="100" placeholder="name@gmail.com" autocomplete="email" required />
+              </label>
+
+              <label>
+                現在のパスワード
+                <input id="mypage-current-password" type="password" maxlength="32" placeholder="現在のパスワード" autocomplete="current-password" required />
+              </label>
+
+              <label>
+                新しいパスワード（変更する場合のみ）
+                <input id="mypage-new-password" type="password" minlength="6" maxlength="32" placeholder="6文字以上" autocomplete="new-password" />
+              </label>
+
+              <div class="mypage-actions">
+                <button type="submit" class="primary-btn">保存する</button>
+                <button id="logout-from-mypage-btn" type="button" class="secondary-btn">ログアウト</button>
+              </div>
+
+              <p id="mypage-message" class="mypage-message" aria-live="polite"></p>
+            </form>
+          </section>
+
+          <section class="mypage-card danger-card">
+            <h3>アカウント削除</h3>
+            <p>アカウントと保存した献立・履歴・ブックマークをすべて削除します。</p>
+            <label>
+              現在のパスワード
+              <input id="delete-account-password" type="password" maxlength="32" placeholder="削除確認用のパスワード" autocomplete="current-password" />
+            </label>
+            <button id="delete-account-btn" type="button" class="danger-btn">アカウントを削除</button>
+          </section>
+        </div>
+      </section>
     </div>
 
-    <script src="script.js?v=20260924-auth-fix"></script>
+    <script src="script.js?v=20261008-mypage-update"></script>
   </body>
 </html>

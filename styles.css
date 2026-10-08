@@ -114,7 +114,9 @@ body {
 
 .auth-actions button,
 .secondary-btn,
-.logout-btn {
+.mypage-btn,
+.primary-btn,
+.danger-btn {
   appearance: none;
   border: none;
   border-radius: 12px;
@@ -125,15 +127,22 @@ body {
 }
 
 #auth-submit-btn,
-.logout-btn {
+.mypage-btn,
+.primary-btn {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: white;
 }
 
 .secondary-btn,
-.logout-btn {
+.mypage-btn {
   background: #fff2e4;
   color: var(--accent-strong);
+}
+
+.danger-btn {
+  background: #ffefef;
+  color: #b63333;
+  border: 1px solid #f2b0b0;
 }
 
 .auth-message {
@@ -142,6 +151,85 @@ body {
   color: var(--accent-strong);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.mypage-panel {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.mypage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.mypage-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(130, 90, 44, 0.06);
+}
+
+.mypage-card h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.mypage-card p {
+  margin-top: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.mypage-form,
+.mypage-card {
+  display: grid;
+  gap: 16px;
+}
+
+.mypage-form label,
+.mypage-card label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.mypage-form input,
+.mypage-card input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 1rem;
+  background: #fffaf6;
+}
+
+.mypage-form input:focus,
+.mypage-card input:focus {
+  outline: 2px solid rgba(255, 138, 61, 0.25);
+  border-color: var(--accent);
+}
+
+.mypage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mypage-message {
+  min-height: 20px;
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.danger-card {
+  border-color: #f2b0b0;
+  background: rgba(255, 248, 248, 0.9);
 }
 
 .topbar {

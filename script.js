@@ -56,7 +56,17 @@ const devLoginButton = document.getElementById('dev-login-btn');
 const emailField = document.getElementById('email-field');
 const authMessage = document.getElementById('auth-message');
 const currentUserName = document.getElementById('current-user-name');
-const logoutButton = document.getElementById('logout-btn');
+const mypageButton = document.getElementById('mypage-btn');
+const mypagePanel = document.getElementById('mypage-panel');
+const mypageForm = document.getElementById('mypage-form');
+const mypageEmailInput = document.getElementById('mypage-email');
+const mypageCurrentPasswordInput = document.getElementById('mypage-current-password');
+const mypageNewPasswordInput = document.getElementById('mypage-new-password');
+const mypageMessage = document.getElementById('mypage-message');
+const closeMypageButton = document.getElementById('close-mypage-btn');
+const logoutFromMypageButton = document.getElementById('logout-from-mypage-btn');
+const deleteAccountPasswordInput = document.getElementById('delete-account-password');
+const deleteAccountButton = document.getElementById('delete-account-btn');
 const appShell = document.querySelector('.app-shell');
 const accountsStorageKey = 'meal-planner-accounts';
 const currentUserStorageKey = 'meal-planner-current-user';
@@ -273,9 +283,145 @@ function handleAuthSubmit(event) {
 function handleLogout() {
   clearCurrentUser();
   authForm.reset();
+  mypageForm.reset();
+  deleteAccountPasswordInput.value = '';
   setAuthMode('signin');
   syncCurrentUserBadge();
+  mypagePanel.hidden = true;
   showAuthView('ログアウトしました。無料アカウントで再度サインインしてください。');
+}
+
+function openMypage() {
+  const user = getCurrentUser();
+  if (!user) {
+    showAuthView('マイページを開くにはログインしてください。');
+    return;
+  }
+
+  hideSubpages();
+  mypagePanel.hidden = false;
+  plannerView.hidden = true;
+  mypageEmailInput.value = user.email;
+  mypageCurrentPasswordInput.value = '';
+  mypageNewPasswordInput.value = '';
+  deleteAccountPasswordInput.value = '';
+  mypageMessage.textContent = '';
+}
+
+function closeMypage() {
+  mypagePanel.hidden = true;
+  showPlanner();
+}
+
+function handleMypageSubmit(event) {
+  event.preventDefault();
+  const user = getCurrentUser();
+  if (!user) {
+    showAuthView('マイページを開くにはログインしてください。');
+    return;
+  }
+
+  const nextEmail = mypageEmailInput.value.trim();
+  const currentPassword = mypageCurrentPasswordInput.value.trim();
+  const newPassword = mypageNewPasswordInput.value.trim();
+
+  if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+    mypageMessage.textContent = '正しいメールアドレスを入力してください。';
+    return;
+  }
+
+  if (!currentPassword) {
+    mypageMessage.textContent = '現在のパスワードを入力してください。';
+    return;
+  }
+
+  if (user.password !== currentPassword) {
+    mypageMessage.textContent = '現在のパスワードが違います。';
+    return;
+  }
+
+  const accounts = getAccounts();
+  const normalizedNextEmail = nextEmail.toLowerCase();
+  const currentEmailKey = getSafeEmail(user.email);
+  const nextEmailKey = getSafeEmail(normalizedNextEmail);
+
+  if (currentEmailKey !== nextEmailKey && accounts.some((account) => getSafeEmail(account.email) === nextEmailKey)) {
+    mypageMessage.textContent = 'そのメールアドレスはすでに登録されています。';
+    return;
+  }
+
+  if (newPassword && newPassword.length < 6) {
+    mypageMessage.textContent = '新しいパスワードは6文字以上で入力してください。';
+    return;
+  }
+
+  const updatedPassword = newPassword || user.password;
+  const updatedUser = {
+    ...user,
+    email: normalizedNextEmail,
+    password: updatedPassword
+  };
+
+  const updatedAccounts = accounts.map((account) => {
+    if (getSafeEmail(account.email) === currentEmailKey) {
+      return {
+        ...account,
+        email: normalizedNextEmail,
+        password: updatedPassword
+      };
+    }
+    return account;
+  });
+
+  const originalUserData = loadUserData();
+  const oldUserDataKey = getUserDataKey(user.email);
+  const nextUserDataKey = getUserDataKey(normalizedNextEmail);
+
+  if (oldUserDataKey !== nextUserDataKey) {
+    localStorage.removeItem(oldUserDataKey);
+  }
+  localStorage.setItem(nextUserDataKey, JSON.stringify(originalUserData));
+  saveAccounts(updatedAccounts);
+  setCurrentUser(updatedUser);
+  syncCurrentUserBadge();
+  mypageMessage.textContent = 'アカウント情報を更新しました。';
+  mypageCurrentPasswordInput.value = '';
+  mypageNewPasswordInput.value = '';
+  mypageEmailInput.value = updatedUser.email;
+}
+
+function handleDeleteAccount() {
+  const user = getCurrentUser();
+  if (!user) {
+    showAuthView('ログインしてください。');
+    return;
+  }
+
+  const password = deleteAccountPasswordInput.value.trim();
+  if (!password) {
+    mypageMessage.textContent = '削除確認のため、現在のパスワードを入力してください。';
+    return;
+  }
+
+  if (user.password !== password) {
+    mypageMessage.textContent = '現在のパスワードが違います。';
+    return;
+  }
+
+  const confirmed = window.confirm('本当にアカウントを削除しますか？ 保存したデータもすべて削除されます。');
+  if (!confirmed) {
+    return;
+  }
+
+  const accounts = getAccounts().filter((account) => getSafeEmail(account.email) !== getSafeEmail(user.email));
+  saveAccounts(accounts);
+  localStorage.removeItem(getUserDataKey(user.email));
+  clearCurrentUser();
+  deleteAccountPasswordInput.value = '';
+  authForm.reset();
+  mypageForm.reset();
+  setAuthMode('signin');
+  showAuthView('アカウントを削除しました。もう一度登録してご利用ください。');
 }
 
 function handleDeveloperLogin() {
@@ -1239,6 +1385,7 @@ function hideSubpages() {
   mealDetailPage.hidden = true;
   fridgePage.hidden = true;
   healthLogPage.hidden = true;
+  mypagePanel.hidden = true;
 }
 
 function showPlanner() {
@@ -1498,7 +1645,11 @@ authSwitchButton.addEventListener('click', () => {
   authEmailInput.focus();
 });
 devLoginButton.addEventListener('click', handleDeveloperLogin);
-logoutButton.addEventListener('click', handleLogout);
+mypageButton.addEventListener('click', openMypage);
+closeMypageButton.addEventListener('click', closeMypage);
+mypageForm.addEventListener('submit', handleMypageSubmit);
+logoutFromMypageButton.addEventListener('click', handleLogout);
+deleteAccountButton.addEventListener('click', handleDeleteAccount);
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
