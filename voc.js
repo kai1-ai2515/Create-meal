@@ -1,5 +1,4 @@
 (() => {
-  const supabaseClient = window.mealSupabaseClient;
   const vocForm = document.getElementById('voc-submit-form');
   const vocCategory = document.getElementById('voc-category');
   const vocSubject = document.getElementById('voc-subject');
@@ -19,6 +18,7 @@
   const vocAdminMessage = document.getElementById('voc-admin-message');
   const vocTableBody = document.getElementById('voc-table-body');
   const vocLogoutButton = document.getElementById('voc-logout-btn');
+  const vocStorageKey = 'meal-planner-voc-messages';
   let currentView = 'inbox';
 
   function escapeHtml(value) {
@@ -38,35 +38,41 @@
     });
   }
 
-  async function getAuthenticatedUser() {
-    if (!supabaseClient) return null;
-    const { data, error } = await supabaseClient.auth.getUser();
-    if (error) throw error;
-    return data.user;
+  function getCurrentUser() {
+    try {
+      return JSON.parse(localStorage.getItem('meal-planner-current-user') || 'null');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function getVocMessages() {
+    try {
+      return JSON.parse(localStorage.getItem(vocStorageKey) || '[]');
+    } catch (error) {
+      console.warn('VOCデータを読み込めませんでした', error);
+      return [];
+    }
+  }
+
+  function saveVocMessages(messages) {
+    localStorage.setItem(vocStorageKey, JSON.stringify(messages));
   }
 
   async function loadMine() {
     if (!myVocList) return;
-    if (!supabaseClient) {
-      myVocList.innerHTML = '<p class="empty-message">Supabaseの接続設定後に利用できます。</p>';
+
+    const user = getCurrentUser();
+    if (!user) {
+      myVocList.innerHTML = '<p class="empty-message">ログインしてください。</p>';
       return;
     }
 
     try {
-      const user = await getAuthenticatedUser();
-      if (!user) {
-        myVocList.innerHTML = '<p class="empty-message">ログインしてください。</p>';
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('voc_messages')
-        .select('id, category, subject, message, status, created_at')
-        .eq('user_id', user.id)
-        .is('archived_at', null)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
+      const data = getVocMessages()
+        .filter((item) => item.userId === user.id && !item.archivedAt)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 50);
 
       if (!data.length) {
         myVocList.innerHTML = '<p class="empty-message">お問い合わせはまだありません。</p>';
@@ -79,7 +85,7 @@
             <strong>${escapeHtml(item.subject)}</strong>
             <span class="voc-status-pill">${escapeHtml(item.status)}</span>
           </div>
-          <time datetime="${escapeHtml(item.created_at)}">${escapeHtml(formatDate(item.created_at))} · ${escapeHtml(item.category)}</time>
+          <time datetime="${escapeHtml(item.createdAt)}">${escapeHtml(formatDate(item.createdAt))} · ${escapeHtml(item.category)}</time>
           <p>${escapeHtml(item.message)}</p>
         </article>
       `).join('');
@@ -91,8 +97,10 @@
 
   async function submitVoc(event) {
     event.preventDefault();
-    if (!supabaseClient) {
-      vocSubmitMessage.textContent = 'Supabaseの接続設定後に送信できます。';
+
+    const user = getCurrentUser();
+    if (!user) {
+      vocSubmitMessage.textContent = 'ログインしてください。';
       return;
     }
 
@@ -106,12 +114,19 @@
     vocSubmitButton.disabled = true;
     vocSubmitMessage.textContent = '送信しています...';
     try {
-      const { error } = await supabaseClient.from('voc_messages').insert({
+      const entries = getVocMessages();
+      entries.unshift({
+        id: `voc-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        userId: user.id,
+        userEmail: user.email,
         category: vocCategory.value,
         subject,
-        message
+        message,
+        status: '未対応',
+        createdAt: new Date().toISOString(),
+        archivedAt: null
       });
-      if (error) throw error;
+      saveVocMessages(entries);
       vocForm.reset();
       vocCharacterCount.textContent = '0 / 4000';
       vocSubmitMessage.textContent = '送信しました。マイページから対応状況を確認できます。';
@@ -150,8 +165,8 @@
            <button type="button" class="danger-btn" data-voc-delete="${item.id}">完全削除</button>`;
       return `
         <tr>
-          <td class="voc-date-cell">${escapeHtml(formatDate(item.created_at))}</td>
-          <td class="voc-user-cell">${escapeHtml(item.user_email)}</td>
+          <td class="voc-date-cell">${escapeHtml(formatDate(item.createdAt))}</td>
+          <td class="voc-user-cell">${escapeHtml(item.userEmail)}</td>
           <td class="voc-content-cell"><strong>${escapeHtml(item.subject)}</strong><span class="voc-status-pill">${escapeHtml(item.category)}</span><p>${escapeHtml(item.message)}</p></td>
           <td><span class="voc-status-pill">${escapeHtml(item.status)}</span></td>
           <td class="voc-row-actions">${actions}</td>
@@ -161,42 +176,45 @@
 
   async function renderAdminList() {
     if (!vocAdminPage || vocAdminPage.hidden || !vocTableBody) return;
-    if (!supabaseClient) {
-      vocAdminMessage.textContent = 'Supabaseの接続設定が必要です。';
+
+    const user = getCurrentUser();
+    if (!user || user.role !== 'developer') {
+      vocTableBody.innerHTML = '<tr><td colspan="5" class="empty-message">開発者ログインでのみVOC管理を利用できます。</td></tr>';
+      vocTotalCount.textContent = '0件';
+      vocAdminMessage.textContent = '開発者権限が必要です。';
       return;
     }
 
     vocAdminMessage.textContent = 'VOCを読み込んでいます...';
     try {
-      const user = await getAuthenticatedUser();
-      if (!user) throw new Error('ログインしてください。');
-      const { data: isDeveloper, error: roleError } = await supabaseClient.rpc('is_current_user_developer');
-      if (roleError || !isDeveloper) throw new Error('開発者権限を確認できません。');
+      const data = getVocMessages()
+        .filter((item) => currentView === 'inbox' ? !item.archivedAt : !!item.archivedAt)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      let query = supabaseClient.from('voc_messages').select('*').order('created_at', { ascending: false }).limit(500);
-      query = currentView === 'inbox' ? query.is('archived_at', null) : query.not('archived_at', 'is', null);
-      if (vocStatusFilter.value !== 'all') query = query.eq('status', vocStatusFilter.value);
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const search = vocSearch.value.trim().toLocaleLowerCase('ja');
+      const search = vocSearch.value.trim().toLocaleLowerCase();
       const filtered = search
-        ? data.filter((item) => [item.user_email, item.subject, item.message, item.category].some((value) => String(value).toLocaleLowerCase('ja').includes(search)))
+        ? data.filter((item) => [item.userEmail, item.subject, item.message, item.category].some((value) => String(value).toLocaleLowerCase().includes(search)))
         : data;
-      vocTotalCount.textContent = `${filtered.length}件`;
-      renderRows(filtered);
+
+      const statusFilter = vocStatusFilter.value;
+      const filteredByStatus = statusFilter === 'all'
+        ? filtered
+        : filtered.filter((item) => item.status === statusFilter);
+
+      vocTotalCount.textContent = `${filteredByStatus.length}件`;
+      renderRows(filteredByStatus);
       vocAdminMessage.textContent = '';
     } catch (error) {
       console.error('VOC一覧を取得できませんでした', error);
       vocTotalCount.textContent = '0件';
-      vocTableBody.innerHTML = '<tr><td colspan="5" class="empty-message">一覧を読み込めませんでした。接続設定と権限を確認してください。</td></tr>';
-      vocAdminMessage.textContent = error.message || 'VOC一覧を取得できませんでした。';
+      vocTableBody.innerHTML = '<tr><td colspan="5" class="empty-message">一覧を読み込めませんでした。</td></tr>';
+      vocAdminMessage.textContent = 'VOC一覧を取得できませんでした。';
     }
   }
 
   async function updateVoc(id, changes) {
-    const { error } = await supabaseClient.from('voc_messages').update(changes).eq('id', id);
-    if (error) throw error;
+    const items = getVocMessages().map((item) => item.id === id ? { ...item, ...changes } : item);
+    saveVocMessages(items);
     await renderAdminList();
   }
 
@@ -213,8 +231,8 @@
     vocAdminPage.hidden = true;
     document.querySelector('.content').hidden = false;
   });
-  vocLogoutButton.addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
+  vocLogoutButton.addEventListener('click', () => {
+    localStorage.removeItem('meal-planner-current-user');
     window.location.reload();
   });
 
@@ -226,7 +244,7 @@
       if (archiveCheckbox && archiveCheckbox.checked) {
         await updateVoc(archiveCheckbox.dataset.vocArchive, {
           status: '対応済み',
-          archived_at: new Date().toISOString()
+          archivedAt: new Date().toISOString()
         });
       }
     } catch (error) {
@@ -239,10 +257,10 @@
     const restoreButton = event.target.closest('[data-voc-restore]');
     const deleteButton = event.target.closest('[data-voc-delete]');
     try {
-      if (restoreButton) await updateVoc(restoreButton.dataset.vocRestore, { archived_at: null });
+      if (restoreButton) await updateVoc(restoreButton.dataset.vocRestore, { archivedAt: null, status: '未対応' });
       if (deleteButton && window.confirm('このVOCを完全に削除しますか？この操作は取り消せません。')) {
-        const { error } = await supabaseClient.from('voc_messages').delete().eq('id', deleteButton.dataset.vocDelete);
-        if (error) throw error;
+        const items = getVocMessages().filter((item) => item.id !== deleteButton.dataset.vocDelete);
+        saveVocMessages(items);
         await renderAdminList();
       }
     } catch (error) {

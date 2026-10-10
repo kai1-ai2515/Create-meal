@@ -3,16 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>今日の献立プランナー</title>
+    <title>レシピタ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20261008-responsive" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
       <div class="auth-card">
-        <p class="auth-kicker">無料アカウント登録</p>
-        <h1>今日の献立プランナー</h1>
+        <div class="auth-illustration" aria-hidden="true">🍽️</div>
+        <div class="auth-status" aria-label="アカウント種別">
+          <span class="status-pill">無料登録</span>
+          <span class="status-pill subtle">ログイン</span>
+        </div>
+        <p class="auth-kicker">RecipeTa</p>
+        <h1>毎日のごはんを、もっと楽しく</h1>
         <p class="auth-copy">
-          献立や履歴を保存し、カスタマーセンターからご意見を送信できます。以前の端末内アカウントは引き継がれないため、再登録をお願いします。
+          レシピタで献立作り、買い物、履歴管理を簡単に。<br />メールアドレスとパスワードだけで、すぐに始められます。
         </p>
 
         <form id="auth-form" class="auth-form">
@@ -37,6 +45,11 @@
 
           <p id="auth-message" class="auth-message" aria-live="polite"></p>
         </form>
+
+        <div class="auth-helper" aria-live="polite">
+          <p class="auth-helper-title">開発者ログイン</p>
+          <p>通常ログインはメールアドレスが必要です。開発者用はパスワードに <strong>kai1.meal</strong> を入力すると入れます。</p>
+        </div>
       </div>
     </div>
 
@@ -69,7 +82,7 @@
             </button>
           </nav>
         </div>
-        <h1>今日の献立プランナー</h1>
+        <h1>レシピタ</h1>
         <p class="hero-text">
           忙しい毎日のために、初心者でも作りやすい献立と、必要な材料・手順をすぐ確認できるようにします。
         </p>
@@ -441,7 +454,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="supabase-config.js?v=20261008-voc-setup"></script>
+    <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="script.js?v=20261008-voc-setup"></script>
   </body>
