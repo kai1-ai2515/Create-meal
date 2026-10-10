@@ -58,6 +58,7 @@ const authView = document.getElementById('auth-view');
 const authForm = document.getElementById('auth-form');
 const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
+const authPasswordLabel = document.getElementById('auth-password-label');
 const authSubmitButton = document.getElementById('auth-submit-btn');
 const authSwitchButton = document.getElementById('auth-switch-btn');
 const devLoginButton = document.getElementById('dev-login-btn');
@@ -98,6 +99,7 @@ const appShell = document.querySelector('.app-shell');
 const userDataStoragePrefix = 'meal-planner-user-data:';
 const localAccountsStorageKey = 'meal-planner-accounts';
 const localCurrentUserStorageKey = 'meal-planner-current-user';
+const developerPasswordStorageKey = 'meal-planner-developer-password';
 const supabaseClient = window.mealSupabaseClient || null;
 let authMode = 'signin';
 let currentUser = null;
@@ -231,19 +233,23 @@ function renderMypageProfile() {
 function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
-  emailField.hidden = false;
+  emailField.hidden = isDeveloperMode;
   emailField.classList.remove('hidden');
-  authEmailInput.required = true;
-  authEmailInput.disabled = false;
+  authEmailInput.required = !isDeveloperMode;
+  authEmailInput.disabled = isDeveloperMode;
   authEmailInput.placeholder = 'name@gmail.com';
-  authPasswordInput.minLength = 6;
+  authPasswordInput.minLength = isDeveloperMode ? 16 : 6;
+  authPasswordInput.maxLength = isDeveloperMode ? 128 : 32;
+  authPasswordInput.autocomplete = 'current-password';
+  authPasswordInput.placeholder = isDeveloperMode ? '開発者パスワード' : '6文字以上';
+  authPasswordLabel.textContent = isDeveloperMode ? '開発者パスワード' : 'パスワード';
   authForm.noValidate = false;
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? 'Supabase Authに登録済みの開発者アカウントでログインしてください。'
+    ? 'メールアドレス不要です。開発者専用パスワードを入力してください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : '新しいメールアドレスでアカウントを作成します。';
@@ -253,7 +259,8 @@ function showAuthView(message = '') {
   authMessage.textContent = message;
   authView.hidden = false;
   appShell.hidden = true;
-  authEmailInput.focus();
+  if (authMode === 'developer') authPasswordInput.focus();
+  else authEmailInput.focus();
 }
 
 function showAppView() {
@@ -286,7 +293,43 @@ async function handleAuthSubmit(event) {
   event.preventDefault();
 
   const email = authEmailInput.value.trim();
-  const password = authPasswordInput.value.trim();
+  const password = authMode === 'developer'
+    ? authPasswordInput.value
+    : authPasswordInput.value.trim();
+
+  if (authMode === 'developer') {
+    if (!password) {
+      authMessage.textContent = '開発者パスワードを入力してください。';
+      return;
+    }
+    if (password.length < 16) {
+      authMessage.textContent = '開発者パスワードは16文字以上にしてください。';
+      return;
+    }
+    if (!supabaseClient) {
+      authMessage.textContent = '開発者ログインにはSupabaseの設定が必要です。';
+      return;
+    }
+
+    authSubmitButton.disabled = true;
+    authMessage.textContent = '開発者パスワードを確認しています...';
+    try {
+      await window.announcementsManager.authenticateDeveloper(password);
+      sessionStorage.setItem(developerPasswordStorageKey, password);
+      completeSuccessfulLogin({
+        id: 'developer-console',
+        email: '開発者',
+        createdAt: new Date().toISOString(),
+        role: 'developer'
+      });
+    } catch (error) {
+      console.error('開発者ログインに失敗しました', error);
+      authMessage.textContent = error.message || '開発者ログインに失敗しました。パスワードとサーバー設定を確認してください。';
+    } finally {
+      authSubmitButton.disabled = false;
+    }
+    return;
+  }
 
   if (!email || !password) {
     authMessage.textContent = 'メールアドレスとパスワードを入力してください。';
@@ -296,37 +339,6 @@ async function handleAuthSubmit(event) {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
     authMessage.textContent = '正しいメールアドレスを入力してください。';
-    return;
-  }
-
-  if (authMode === 'developer') {
-    if (!supabaseClient) {
-      authMessage.textContent = '開発者ログインを利用するには、SupabaseのURLと公開キーを設定してください。';
-      return;
-    }
-
-    try {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: getSafeEmail(email),
-        password
-      });
-      if (error) throw error;
-      const authUser = data.user || data.session?.user;
-      if (!authUser || authUser.app_metadata?.role !== 'developer') {
-        await supabaseClient.auth.signOut();
-        authMessage.textContent = 'このアカウントには開発者権限がありません。';
-        return;
-      }
-      completeSuccessfulLogin({
-        id: authUser.id,
-        email: authUser.email,
-        createdAt: authUser.created_at,
-        role: 'developer'
-      });
-    } catch (error) {
-      console.error('開発者ログインに失敗しました', error);
-      authMessage.textContent = error.message || '開発者ログインに失敗しました。Supabase Authの設定を確認してください。';
-    }
     return;
   }
 
@@ -357,7 +369,7 @@ async function handleAuthSubmit(event) {
         id: authUser.id,
         email: authUser.email,
         createdAt: authUser.created_at,
-        role: authUser.app_metadata?.role === 'developer' ? 'developer' : 'user'
+        role: 'user'
       });
       return;
     } catch (error) {
@@ -408,7 +420,7 @@ async function handleAuthSubmit(event) {
 }
 
 async function handleLogout() {
-  if (supabaseClient) {
+  if (supabaseClient && currentUser?.role !== 'developer') {
     const { error } = await supabaseClient.auth.signOut();
     if (error) {
       console.error('ログアウトできませんでした', error);
@@ -418,6 +430,7 @@ async function handleLogout() {
   }
 
   clearStoredCurrentUser();
+  sessionStorage.removeItem(developerPasswordStorageKey);
   clearCurrentUser();
   authForm.reset();
   mypageForm.reset();
@@ -809,8 +822,8 @@ function handleDeveloperLogin() {
   authEmailInput.value = '';
   authPasswordInput.value = '';
   setAuthMode('developer');
-  if (supabaseClient) authEmailInput.focus();
-  else authMessage.textContent = '開発者ログインはSupabase設定後に利用できます。';
+  authPasswordInput.focus();
+  if (!supabaseClient) authMessage.textContent = '開発者ログインはSupabase設定後に利用できます。';
 }
 
 function returnToUserLogin() {
@@ -1933,17 +1946,46 @@ function addBookmark(plan) {
 }
 
 async function initializeAuthFlow() {
+  const savedUser = getStoredCurrentUser();
+  if (savedUser?.role === 'developer') {
+    setAuthMode('developer');
+    const developerPassword = sessionStorage.getItem(developerPasswordStorageKey);
+    if (!developerPassword) {
+      clearStoredCurrentUser();
+      clearCurrentUser();
+      showAuthView('開発者ログインの有効期限が切れました。専用パスワードを入力してください。');
+      return;
+    }
+    try {
+      await window.announcementsManager.authenticateDeveloper(developerPassword);
+      completeSuccessfulLogin(savedUser);
+    } catch (error) {
+      console.error('開発者セッションを確認できませんでした', error);
+      clearStoredCurrentUser();
+      sessionStorage.removeItem(developerPasswordStorageKey);
+      clearCurrentUser();
+      showAuthView('開発者セッションを確認できませんでした。もう一度ログインしてください。');
+    }
+    return;
+  }
+
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient.auth.getSession();
       if (error) throw error;
       if (data.session?.user) {
         const authUser = data.session.user;
+        if (authUser.app_metadata?.role === 'developer') {
+          await supabaseClient.auth.signOut();
+          setAuthMode('developer');
+          showAuthView('開発者ログインはメールアドレス不要です。専用パスワードでログインしてください。');
+          return;
+        }
         completeSuccessfulLogin({
           id: authUser.id,
           email: authUser.email,
           createdAt: authUser.created_at,
-          role: authUser.app_metadata?.role === 'developer' ? 'developer' : 'user'
+          role: 'user'
         });
         return;
       }
@@ -1952,18 +1994,9 @@ async function initializeAuthFlow() {
     }
   }
 
-  const savedUser = getStoredCurrentUser();
   if (!savedUser) {
     setAuthMode('signin');
     showAuthView('メールアドレスでサインインしてください。');
-    return;
-  }
-
-  if (savedUser.role === 'developer') {
-    clearStoredCurrentUser();
-    clearCurrentUser();
-    setAuthMode('developer');
-    showAuthView('安全のため、開発者ログインはSupabase Authで再認証してください。');
     return;
   }
 

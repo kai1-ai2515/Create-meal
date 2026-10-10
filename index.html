@@ -20,7 +20,7 @@
         <p class="auth-kicker">RecipeTa</p>
         <h1>毎日のごはんを、もっと楽しく</h1>
         <p class="auth-copy">
-          レシピタで献立作り、買い物、履歴管理を簡単に。<br />メールアドレスとパスワードだけで、すぐに始められます。
+          レシピタで献立作り、買い物、履歴管理を簡単に。<br />アカウント登録、または開発者ログインから始められます。
         </p>
 
         <form id="auth-form" class="auth-form">
@@ -30,7 +30,7 @@
           </label>
 
           <label class="auth-field">
-            パスワード
+            <span id="auth-password-label">パスワード</span>
             <input id="auth-password" type="password" minlength="6" maxlength="32" placeholder="6文字以上" autocomplete="current-password" required />
           </label>
 
@@ -595,7 +595,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
-    <script src="announcements.js?v=20261010-developer-broadcast"></script>
-    <script src="script.js?v=20261010-developer-broadcast"></script>
+    <script src="announcements.js?v=20261010-password-only-dev"></script>
+    <script src="script.js?v=20261010-password-only-dev"></script>
   </body>
 </html>

@@ -6,18 +6,23 @@
 
 ## アップデートのお知らせ
 
-開発者はアプリ内の「お知らせ配信」から全ユーザーへメッセージを配信できます。配信機能を有効にするには次のSupabase設定が必要です。
+開発者ログインにメールアドレスは不要です。Supabase Edge Functionで確認する専用パスワードを設定します。
 
-1. `supabase-config.js` にSupabaseのProject URLと公開用anon keyを設定します。`service_role` keyはブラウザーに置かないでください。
-2. SupabaseのSQL Editorで [`supabase/announcements.sql`](./supabase/announcements.sql) を実行します。
-3. Supabase Authに開発者アカウントを作成し、SQL Editorで次のSQLを実行して開発者ロールを設定します。メールアドレスは作成したアカウントに置き換えてください。
+### 初回設定・更新
 
-   ```sql
-   update auth.users
-   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"developer"}'::jsonb
-   where email = 'your-developer@example.com';
+1. [`supabase-config.js`](./supabase-config.js) にProject URLとPublishable（旧anon）キーを設定します。`service_role` / Secret keyはこのファイルに絶対に入れないでください。
+2. Supabaseの **SQL Editor** で [`supabase/announcements.sql`](./supabase/announcements.sql) 全体を実行します。初めてならテーブルを作り、以前の方式で作成済みなら権限を新方式に更新します。
+3. Supabaseの **Edge Functions → Secrets** で `DEVELOPER_PASSWORD` を登録します。16文字以上の推測されにくいパスワードにしてください。チャットやソースコードには書かず、アプリのログイン時に使います。
+4. Supabase CLIをインストールし、プロジェクトのルートで次を実行してログイン・プロジェクト連携・関数配信を行います。Project refはProject URLの `https://` と `.supabase.co` の間の文字列です。
+
+   ```sh
+   npx supabase login
+   npx supabase link --project-ref <project-ref>
+   npx supabase functions deploy developer-announcements
    ```
 
-4. 開発者アカウントで再ログインしてから、開発者コンソールの「お知らせ配信」を開きます。
+   Edge Functionが使う`SUPABASE_SERVICE_ROLE_KEY`はサーバー環境でのみ使用します。Publishable keyやアプリのブラウザー側に置かないでください。
 
-お知らせはSupabaseで公開され、ログイン中の全ユーザーが閲覧できます。読み取りは公開、投稿と削除はSupabase Authの開発者ロールとRow Level Securityで制限されます。設定前は配信フォームに設定エラーが表示されます。
+5. アプリを公開した後、「開発者ログイン」を選び、登録した専用パスワードでログインします。開発者コンソールの「お知らせ配信」から全ユーザーへ投稿できます。
+
+SupabaseのEdge Functionがパスワードを検証してから投稿・削除するため、画面上で開発者表示を偽装しても操作できません。一般ユーザーはお知らせを読むことだけができます。開発者パスワードは現在のブラウザータブの間だけ保持され、ログアウトすると消去されます。

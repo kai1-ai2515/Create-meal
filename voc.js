@@ -298,6 +298,7 @@
         if (error) throw error;
       }
       localStorage.removeItem('meal-planner-current-user');
+      sessionStorage.removeItem('meal-planner-developer-password');
       window.location.reload();
     } catch (error) {
       console.error('開発者ログアウトに失敗しました', error);

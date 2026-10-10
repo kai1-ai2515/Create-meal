@@ -12,6 +12,7 @@
   const announcementRefreshButton = document.getElementById('announcement-refresh-btn');
   const supabaseClient = window.mealSupabaseClient || null;
   const readStoragePrefix = 'meal-planner-announcements-read:';
+  const developerPasswordStorageKey = 'meal-planner-developer-password';
   const staticAnnouncements = [
     {
       id: 'update-20261010',
@@ -132,17 +133,34 @@
     }
   }
 
-  async function getDeveloperUser() {
+  async function callDeveloperFunction(method, body) {
     if (!supabaseClient) {
       throw new Error('SupabaseのURLと公開キーを設定してから配信してください。');
     }
 
-    const { data, error } = await supabaseClient.auth.getUser();
+    const developerPassword = sessionStorage.getItem(developerPasswordStorageKey);
+    if (!developerPassword) throw new Error('開発者ログインの有効期限が切れました。再ログインしてください。');
+
+    const { data, error } = await supabaseClient.functions.invoke('developer-announcements', {
+      method,
+      headers: { 'x-developer-password': developerPassword },
+      ...(body ? { body } : {})
+    });
     if (error) throw error;
-    if (data.user?.app_metadata?.role !== 'developer') {
-      throw new Error('Supabase Authの開発者権限が必要です。');
+    return data;
+  }
+
+  async function authenticateDeveloper(password) {
+    if (!supabaseClient) {
+      throw new Error('開発者ログインを利用するにはSupabaseの設定が必要です。');
     }
-    return data.user;
+
+    const { error } = await supabaseClient.functions.invoke('developer-announcements', {
+      method: 'GET',
+      headers: { 'x-developer-password': password }
+    });
+    if (error) throw new Error('パスワードが違うか、開発者配信サーバーが未設定です。');
+    return true;
   }
 
   function renderAdminAnnouncements(items) {
@@ -168,14 +186,8 @@
     announcementAdminMessage.textContent = '配信履歴を読み込んでいます...';
     announcementAdminList.innerHTML = '';
     try {
-      await getDeveloperUser();
-      const { data, error } = await supabaseClient
-        .from('announcements')
-        .select('id, title, body, published_at')
-        .order('published_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      renderAdminAnnouncements(data || []);
+      const data = await callDeveloperFunction('GET');
+      renderAdminAnnouncements(data.announcements || []);
       announcementAdminMessage.textContent = '';
       return true;
     } catch (error) {
@@ -200,11 +212,7 @@
     announcementSubmitButton.disabled = true;
     announcementAdminMessage.textContent = '全ユーザーへ配信しています...';
     try {
-      const user = await getDeveloperUser();
-      const { error } = await supabaseClient
-        .from('announcements')
-        .insert({ title, body, created_by: user.id });
-      if (error) throw error;
+      await callDeveloperFunction('POST', { title, body });
       announcementForm.reset();
       const refreshed = await loadAdmin();
       announcementAdminMessage.textContent = refreshed
@@ -224,12 +232,7 @@
 
     announcementAdminMessage.textContent = 'お知らせを削除しています...';
     try {
-      await getDeveloperUser();
-      const { error } = await supabaseClient
-        .from('announcements')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      await callDeveloperFunction('DELETE', { id });
       await loadAdmin();
       await refreshCount();
     } catch (error) {
@@ -254,5 +257,5 @@
     document.addEventListener('visibilitychange', refreshCountWhenVisible);
   }
 
-  window.announcementsManager = { loadMine, loadAdmin, refreshCount };
+  window.announcementsManager = { authenticateDeveloper, loadMine, loadAdmin, refreshCount };
 })();
