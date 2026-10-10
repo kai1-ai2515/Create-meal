@@ -218,7 +218,7 @@ function setAuthMode(nextMode) {
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? '開発者ログインではメールアドレス不要です。パスワードに「kai1.meal」を入力してください。'
+    ? '開発者ログインではメールアドレスは不要です。開発者用パスワードを入力してください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : '新しいメールアドレスでアカウントを作成します。';
