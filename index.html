@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261010-app-polish" />
+    <link rel="stylesheet" href="styles.css?v=20261010-health-trend" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -125,6 +125,13 @@
             <button id="record-health-btn" class="health-record-btn" type="button" disabled>食べた献立を記録</button>
             <button id="manage-health-logs-btn" class="health-manage-btn" type="button">記録を管理</button>
           </div>
+          <section class="health-trend" aria-labelledby="health-trend-title">
+            <div class="health-trend-heading">
+              <h3 id="health-trend-title">スコアの推移</h3>
+              <span>直近6か月の月平均</span>
+            </div>
+            <div id="health-trend-chart" class="health-trend-chart" aria-live="polite"></div>
+          </section>
           <details class="health-criteria">
             <summary>点数の基準を見る</summary>
             <p>食べた献立を1日ごとに採点し、今月分の平均を四捨五入して表示します。配点は次のとおりです。</p>
@@ -547,6 +554,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-static-announcements"></script>
-    <script src="script.js?v=20261010-registrants"></script>
+    <script src="script.js?v=20261010-health-trend"></script>
   </body>
 </html>

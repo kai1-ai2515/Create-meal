@@ -47,6 +47,7 @@ const healthLevel = document.getElementById('health-level');
 const healthDelta = document.getElementById('health-delta');
 const healthComment = document.getElementById('health-comment');
 const healthLogCount = document.getElementById('health-log-count');
+const healthTrendChart = document.getElementById('health-trend-chart');
 const recordHealthButton = document.getElementById('record-health-btn');
 const manageHealthLogsButton = document.getElementById('manage-health-logs-btn');
 const healthLogPage = document.getElementById('health-log-page');
@@ -1174,6 +1175,66 @@ function getHealthScores() {
   return getUserDataValue(healthScoresStorageKey, {});
 }
 
+function renderHealthTrend(scores) {
+  const today = new Date();
+  today.setDate(1);
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(today);
+    date.setMonth(today.getMonth() - (5 - index));
+    const key = getMonthKey(date);
+    const score = scores[key]?.score;
+    return {
+      key,
+      label: getMonthLabel(key),
+      score: Number.isFinite(score) && score >= 0 && score <= 100 ? score : null
+    };
+  });
+  const recordedMonths = months.filter((month) => month.score !== null);
+  const chartLabel = recordedMonths.length
+    ? `健康スコアの直近6か月の推移。${recordedMonths.map((month) => `${month.key.replace('-', '年')}月 ${month.score}点`).join('、')}`
+    : '健康スコアの推移。まだ食卓の記録がありません。';
+  const chartLeft = 38;
+  const chartRight = 332;
+  const chartTop = 18;
+  const chartBottom = 112;
+  const points = months.map((month, index) => ({
+    ...month,
+    x: chartLeft + (chartRight - chartLeft) * index / (months.length - 1),
+    y: month.score === null ? null : chartBottom - month.score * (chartBottom - chartTop) / 100
+  }));
+  const gridlines = [0, 50, 100].map((score) => {
+    const y = chartBottom - score * (chartBottom - chartTop) / 100;
+    return `<line class="health-trend-gridline" x1="${chartLeft}" y1="${y}" x2="${chartRight}" y2="${y}" /><text class="health-trend-axis-label" x="3" y="${y + 3}">${score}</text>`;
+  }).join('');
+  const lines = points.slice(1).map((point, index) => {
+    const previous = points[index];
+    return previous.score === null || point.score === null
+      ? ''
+      : `<line class="health-trend-line" x1="${previous.x}" y1="${previous.y}" x2="${point.x}" y2="${point.y}" />`;
+  }).join('');
+  const markers = points.map((point) => point.score === null
+    ? ''
+    : `<g class="health-trend-point"><title>${point.key.replace('-', '年')}月: ${point.score}点</title><circle cx="${point.x}" cy="${point.y}" r="4.5" /><text class="health-trend-point-label" x="${point.x}" y="${point.y - 10}" text-anchor="middle">${point.score}</text></g>`).join('');
+  const monthLabels = points.map((point) => (
+    `<text class="health-trend-month-label" x="${point.x}" y="137" text-anchor="middle">${point.label}</text>`
+  )).join('');
+  const emptyMessage = recordedMonths.length
+    ? ''
+    : '<p class="health-trend-empty">食べた献立を記録すると、月ごとのスコアがここに表示されます。</p>';
+
+  healthTrendChart.innerHTML = `
+    <div class="health-trend-plot">
+      <svg viewBox="0 0 350 150" role="img" aria-label="${chartLabel}" focusable="false">
+        ${gridlines}
+        ${lines}
+        ${markers}
+        ${monthLabels}
+      </svg>
+      ${emptyMessage}
+    </div>
+  `;
+}
+
 function getEatenLogs() {
   return getUserDataValue(eatenLogsStorageKey, []);
 }
@@ -1241,6 +1302,7 @@ function renderHealthMaster() {
     ? '献立を作ると計測を始めます'
     : previous ? `前月比 ${score - previous.score >= 0 ? '+' : ''}${score - previous.score}pt` : '今月から計測中';
   healthComment.textContent = current ? current.comment : '実際に食べた献立を記録すると、食事バランスをもとに健康レベルを表示します。';
+  renderHealthTrend(scores);
   const alreadyRecorded = monthLogs.some((log) => log.date === getLocalDateKey());
   recordHealthButton.disabled = !resultPanel.currentPlan || alreadyRecorded;
   recordHealthButton.textContent = alreadyRecorded ? '本日は記録済み' : '食べた献立を記録';

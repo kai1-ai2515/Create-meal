@@ -2802,6 +2802,79 @@ button:hover {
   box-shadow: 0 10px 26px rgba(47, 106, 78, 0.07);
 }
 
+.health-trend {
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(113, 161, 132, 0.2);
+}
+
+.health-trend-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.health-trend-heading h3 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.health-trend-heading > span {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.health-trend-plot {
+  position: relative;
+  margin-top: 7px;
+}
+
+.health-trend-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: inherit;
+}
+
+.health-trend-gridline {
+  stroke: #e5eee8;
+  stroke-width: 1;
+}
+
+.health-trend-axis-label,
+.health-trend-month-label {
+  fill: #829087;
+  font-size: 9px;
+}
+
+.health-trend-line {
+  stroke: #57a783;
+  stroke-linecap: round;
+  stroke-width: 2.5;
+}
+
+.health-trend-point circle {
+  fill: #fff;
+  stroke: #45966f;
+  stroke-width: 2.5;
+}
+
+.health-trend-point-label {
+  fill: #387c5b;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.health-trend-empty {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .content {
   gap: 18px;
 }
