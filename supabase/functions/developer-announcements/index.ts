@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "apikey, authorization, content-type, x-client-info, x-developer-password",
@@ -11,6 +9,36 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function requestAnnouncements(
+  url: string,
+  serviceRoleKey: string,
+  path: string,
+  init: RequestInit = {},
+) {
+  const response = await fetch(`${url}/rest/v1/announcements${path}`, {
+    ...init,
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+      ...init.headers,
+    },
+  });
+  const responseBody = await response.text();
+  let data: unknown = null;
+  if (responseBody) {
+    try {
+      data = JSON.parse(responseBody);
+    } catch {
+      throw new Error("Announcement service returned an invalid response.");
+    }
+  }
+  if (!response.ok) {
+    throw new Error(`Announcement service returned HTTP ${response.status}.`);
+  }
+  return data;
 }
 
 async function digest(value: string) {
@@ -58,18 +86,18 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Announcement service is not configured." }, 503);
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
   try {
     if (request.method === "GET") {
-      const { data, error } = await supabase
-        .from("announcements")
-        .select("id, title, body, published_at")
-        .order("published_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
+      const query = new URLSearchParams({
+        select: "id,title,body,published_at",
+        order: "published_at.desc",
+        limit: "100",
+      });
+      const data = await requestAnnouncements(
+        supabaseUrl,
+        serviceRoleKey,
+        `?${query}`,
+      );
       return jsonResponse({ announcements: data || [] });
     }
 
@@ -87,13 +115,19 @@ Deno.serve(async (request) => {
         return jsonResponse({ error: "Title or message has an invalid length." }, 400);
       }
 
-      const { data, error } = await supabase
-        .from("announcements")
-        .insert({ title, body })
-        .select("id, title, body, published_at")
-        .single();
-      if (error) throw error;
-      return jsonResponse({ announcement: data }, 201);
+      const data = await requestAnnouncements(
+        supabaseUrl,
+        serviceRoleKey,
+        "?select=id,title,body,published_at",
+        {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ title, body }),
+        },
+      );
+      const announcement = Array.isArray(data) ? data[0] : null;
+      if (!announcement) throw new Error("Announcement insert returned no row.");
+      return jsonResponse({ announcement }, 201);
     }
 
     const id = typeof payload.id === "string" ? payload.id : "";
@@ -101,14 +135,16 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: "Invalid announcement ID." }, 400);
     }
 
-    const { data, error } = await supabase
-      .from("announcements")
-      .delete()
-      .eq("id", id)
-      .select("id")
-      .maybeSingle();
-    if (error) throw error;
-    if (!data) return jsonResponse({ error: "Announcement not found." }, 404);
+    const query = new URLSearchParams({ id: `eq.${id}`, select: "id" });
+    const data = await requestAnnouncements(
+      supabaseUrl,
+      serviceRoleKey,
+      `?${query}`,
+      { method: "DELETE", headers: { Prefer: "return=representation" } },
+    );
+    if (!Array.isArray(data) || data.length === 0) {
+      return jsonResponse({ error: "Announcement not found." }, 404);
+    }
     return jsonResponse({ deleted: true });
   } catch (error) {
     console.error("Announcement operation failed:", error);
