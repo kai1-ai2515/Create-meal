@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261010-recipe-search" />
+    <link rel="stylesheet" href="styles.css?v=20261010-registrants" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -439,6 +439,7 @@
           </div>
           <div class="voc-admin-account-actions">
             <span id="voc-total-count" class="health-month">0件</span>
+            <button id="open-registrants-btn" class="secondary-btn" type="button">登録者一覧</button>
             <button id="voc-logout-btn" class="secondary-btn" type="button">ログアウト</button>
           </div>
         </div>
@@ -489,12 +490,50 @@
         </div>
       </section>
 
+      <section class="panel subpage registrants-page" id="registrants-page" hidden>
+        <div class="subpage-header">
+          <button id="close-registrants-btn" class="back-btn" type="button">← VOC管理に戻る</button>
+          <span class="subpage-kicker">開発者専用</span>
+        </div>
+        <div class="registrants-heading">
+          <div>
+            <p class="health-kicker">REGISTERED USERS</p>
+            <h2>登録者情報一覧</h2>
+          </div>
+          <span id="registrants-count" class="health-month" aria-live="polite">0件</span>
+        </div>
+        <p class="registrants-notice">このブラウザに保存されたローカル登録のみ表示します。Supabaseに登録されたアカウントはここには表示されません。</p>
+        <div class="registrants-toolbar">
+          <label class="registrants-search-label">
+            <span class="visually-hidden">登録者を検索</span>
+            <input id="registrants-search" type="search" placeholder="メールアドレスを検索" autocomplete="off" />
+          </label>
+          <button id="registrants-export-btn" class="secondary-btn" type="button">CSVを書き出す</button>
+          <button id="registrants-refresh-btn" class="secondary-btn" type="button">更新</button>
+        </div>
+        <p id="registrants-message" class="mypage-message" aria-live="polite"></p>
+        <div class="registrants-table-scroll">
+          <table class="registrants-table">
+            <thead>
+              <tr>
+                <th scope="col">メールアドレス</th>
+                <th scope="col">登録日時</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody id="registrants-table-body">
+              <tr><td colspan="3" class="empty-message">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-static-announcements"></script>
-    <script src="script.js?v=20261010-recipe-search"></script>
+    <script src="script.js?v=20261010-registrants"></script>
   </body>
 </html>

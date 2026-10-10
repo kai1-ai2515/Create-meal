@@ -80,6 +80,15 @@ const resetLocalDataButton = document.getElementById('reset-local-data-btn');
 const deleteAccountPasswordInput = document.getElementById('delete-account-password');
 const deleteAccountButton = document.getElementById('delete-account-btn');
 const vocAdminPage = document.getElementById('voc-admin-page');
+const registrantsPage = document.getElementById('registrants-page');
+const openRegistrantsButton = document.getElementById('open-registrants-btn');
+const closeRegistrantsButton = document.getElementById('close-registrants-btn');
+const registrantsSearch = document.getElementById('registrants-search');
+const registrantsRefreshButton = document.getElementById('registrants-refresh-btn');
+const registrantsExportButton = document.getElementById('registrants-export-btn');
+const registrantsCount = document.getElementById('registrants-count');
+const registrantsMessage = document.getElementById('registrants-message');
+const registrantsTableBody = document.getElementById('registrants-table-body');
 const appShell = document.querySelector('.app-shell');
 const userDataStoragePrefix = 'meal-planner-user-data:';
 const localAccountsStorageKey = 'meal-planner-accounts';
@@ -438,6 +447,143 @@ function openVocAdminPage() {
   plannerView.hidden = true;
   vocAdminPage.hidden = false;
   window.vocManager?.loadAdmin();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
+
+function formatRegistrantDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? '未設定'
+    : date.toLocaleString('ja-JP', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+}
+
+function getLocalRegistrants() {
+  return getStoredAccounts()
+    .filter((account) => account.role !== 'developer')
+    .sort((first, second) => new Date(second.createdAt || 0) - new Date(first.createdAt || 0));
+}
+
+function renderRegistrants() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    registrantsCount.textContent = '0件';
+    registrantsTableBody.innerHTML = '<tr><td colspan="3" class="empty-message">開発者ログインでのみ登録者情報を確認できます。</td></tr>';
+    registrantsMessage.textContent = '開発者権限が必要です。';
+    return;
+  }
+
+  const accounts = getLocalRegistrants();
+  const query = registrantsSearch.value.trim().toLocaleLowerCase();
+  const filteredAccounts = query
+    ? accounts.filter((account) => String(account.email || '').toLocaleLowerCase().includes(query))
+    : accounts;
+  registrantsCount.textContent = `${filteredAccounts.length}件`;
+  registrantsMessage.textContent = '';
+  registrantsTableBody.innerHTML = filteredAccounts.length
+    ? filteredAccounts.map((account) => `
+        <tr>
+          <td data-label="メールアドレス">${escapeHtml(account.email)}</td>
+          <td data-label="登録日時">${escapeHtml(formatRegistrantDate(account.createdAt))}</td>
+          <td data-label="操作"><button class="danger-btn" type="button" data-delete-registrant="${escapeHtml(account.id)}">登録を削除</button></td>
+        </tr>
+      `).join('')
+    : `<tr><td colspan="3" class="empty-message">${query ? '検索条件に一致する登録者はいません。' : 'ローカル登録者はいません。'}</td></tr>`;
+}
+
+function exportRegistrantsCsv() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    registrantsMessage.textContent = 'CSVの書き出しには開発者権限が必要です。';
+    return;
+  }
+
+  const accounts = getLocalRegistrants();
+  if (!accounts.length) {
+    registrantsMessage.textContent = '書き出す登録者がいません。';
+    return;
+  }
+
+  const toCsvCell = (value) => {
+    let text = String(value ?? '');
+    if (/^[\s]*[=+\-@]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+  const rows = [
+    ['メールアドレス', '登録日時'].map(toCsvCell).join(','),
+    ...accounts.map((account) => [account.email, account.createdAt].map(toCsvCell).join(','))
+  ];
+  const blob = new Blob([`\uFEFF${rows.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `recipeta-registrants-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  registrantsMessage.textContent = `${accounts.length}件の登録者情報をCSVに書き出しました。`;
+}
+
+function openRegistrantsPage() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    showAuthView('登録者情報の確認には開発者アカウントでログインしてください。');
+    return;
+  }
+
+  hideSubpages();
+  plannerView.hidden = true;
+  registrantsPage.hidden = false;
+  registrantsMessage.textContent = '';
+  renderRegistrants();
+}
+
+function closeRegistrantsPage() {
+  registrantsPage.hidden = true;
+  vocAdminPage.hidden = false;
+  plannerView.hidden = true;
+  window.vocManager?.loadAdmin();
+}
+
+function deleteRegistrant(id) {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    registrantsMessage.textContent = '登録の削除には開発者権限が必要です。';
+    return;
+  }
+
+  const accounts = getLocalRegistrants();
+  const account = accounts.find((item) => item.id === id);
+  if (!account) {
+    registrantsMessage.textContent = '登録者が見つかりません。一覧を更新してください。';
+    return;
+  }
+  if (!window.confirm(`${account.email} のローカル登録と、このブラウザに保存された利用データ・VOCを削除しますか？この操作は取り消せません。`)) {
+    return;
+  }
+
+  try {
+    const vocMessages = JSON.parse(localStorage.getItem('meal-planner-voc-messages') || '[]');
+    if (!Array.isArray(vocMessages)) throw new Error('VOCデータの形式が正しくありません。');
+    saveStoredAccounts(getStoredAccounts().filter((item) => item.id !== id));
+    localStorage.setItem('meal-planner-voc-messages', JSON.stringify(vocMessages.filter((message) => message.userId !== id)));
+    localStorage.removeItem(getUserDataKey(account.email));
+    renderRegistrants();
+    registrantsMessage.textContent = 'ローカル登録と、このブラウザに保存された利用データ・VOCを削除しました。';
+  } catch (error) {
+    console.error('登録者情報を削除できませんでした', error);
+    registrantsMessage.textContent = '登録者情報を削除できませんでした。ブラウザの保存領域を確認してください。';
+  }
 }
 
 function openAnnouncementsPage() {
@@ -1720,6 +1866,11 @@ async function initializeAuthFlow() {
     return;
   }
 
+  if (savedUser.role === 'developer') {
+    completeSuccessfulLogin(savedUser);
+    return;
+  }
+
   const accounts = getStoredAccounts();
   const account = accounts.find((item) => item.id === savedUser.id || getSafeEmail(item.email) === getSafeEmail(savedUser.email));
   if (!account) {
@@ -1747,6 +1898,7 @@ function hideSubpages() {
   healthLogPage.hidden = true;
   mypagePanel.hidden = true;
   vocAdminPage.hidden = true;
+  registrantsPage.hidden = true;
 }
 
 function showPlanner() {
@@ -2031,6 +2183,15 @@ logoutFromMypageButton.addEventListener('click', handleLogout);
 exportDataButton.addEventListener('click', exportUserData);
 resetLocalDataButton.addEventListener('click', resetUserLocalData);
 deleteAccountButton.addEventListener('click', handleDeleteAccount);
+openRegistrantsButton.addEventListener('click', openRegistrantsPage);
+closeRegistrantsButton.addEventListener('click', closeRegistrantsPage);
+registrantsSearch.addEventListener('input', renderRegistrants);
+registrantsRefreshButton.addEventListener('click', renderRegistrants);
+registrantsExportButton.addEventListener('click', exportRegistrantsCsv);
+registrantsTableBody.addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('[data-delete-registrant]');
+  if (deleteButton) deleteRegistrant(deleteButton.dataset.deleteRegistrant);
+});
 document.addEventListener('click', (event) => {
   const toggleButton = event.target.closest('[data-password-toggle]');
   if (toggleButton) {

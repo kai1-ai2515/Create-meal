@@ -824,6 +824,109 @@ body {
   font-size: 0.78rem;
 }
 
+.registrants-page {
+  max-width: none;
+}
+
+.registrants-heading {
+  max-width: 1060px;
+  margin: 24px auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.registrants-heading h2 {
+  margin: 0;
+}
+
+.registrants-notice,
+.registrants-toolbar,
+.registrants-page > .mypage-message,
+.registrants-table-scroll {
+  max-width: 1060px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.registrants-notice {
+  margin-top: 0;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: #fff8ef;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.registrants-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.registrants-search-label input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: #fffaf6;
+  color: var(--text);
+}
+
+.registrants-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.registrants-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.registrants-table th,
+.registrants-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.registrants-table th {
+  background: #fff7ef;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.registrants-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.registrants-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.registrants-table .empty-message {
+  padding: 28px;
+  text-align: center;
+}
+
+.registrants-table .danger-btn {
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -2218,6 +2321,7 @@ button:hover {
 
   .utility-nav {
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .utility-icon-btn {
@@ -2253,6 +2357,10 @@ button:hover {
     padding: 20px 16px 32px;
   }
 
+  .subpage-header {
+    flex-wrap: wrap;
+  }
+
   .password-input-row input {
     min-width: 0;
   }
@@ -2269,6 +2377,20 @@ button:hover {
   .health-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .health-actions button {
+    width: 100%;
+  }
+
+  .health-master-heading,
+  .recipe-search-heading,
+  .fridge-results-heading {
+    align-items: flex-start;
+  }
+
+  .health-master-heading {
+    flex-wrap: wrap;
   }
 
   .health-actions .health-record-btn {
@@ -2290,6 +2412,84 @@ button:hover {
 
   .voc-admin-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .registrants-heading {
+    align-items: flex-start;
+  }
+
+  .registrants-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .registrants-search-label {
+    grid-column: 1 / -1;
+  }
+
+  .registrants-table-scroll {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .registrants-table,
+  .registrants-table tbody {
+    display: block;
+  }
+
+  .registrants-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .registrants-table tbody tr {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.86);
+  }
+
+  .registrants-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .registrants-table td,
+  .registrants-table td:last-child {
+    display: grid;
+    grid-template-columns: minmax(88px, 0.45fr) minmax(0, 1fr);
+    gap: 10px;
+    width: auto;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+
+  .registrants-table td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .registrants-table td:last-child button {
+    justify-self: start;
+  }
+
+  .registrants-table td.empty-message {
+    display: block;
+    padding: 8px;
+    text-align: center;
+  }
+
+  .registrants-table td.empty-message::before {
+    content: none;
   }
 
   .voc-tabs,
@@ -2356,11 +2556,19 @@ button:hover {
     flex-wrap: wrap;
   }
 
+  .voc-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
 }
 
 @media (max-width: 560px) {
   .recipe-search-results {
     grid-template-columns: 1fr;
+  }
+
+  .voc-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2375,6 +2583,10 @@ button:hover {
 
   .voc-admin-toolbar {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .registrants-toolbar {
+    grid-template-columns: minmax(180px, 1fr) auto auto;
   }
 }
 
@@ -2406,6 +2618,14 @@ button:hover {
 
   .voc-tabs {
     width: 100%;
+  }
+
+  .registrants-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .registrants-search-label {
+    grid-column: auto;
   }
 
   .voc-tab {
