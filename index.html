@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261010-health-trend" />
+    <link rel="stylesheet" href="styles.css?v=20261010-developer-broadcast" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -450,19 +450,21 @@
       <section class="panel subpage voc-admin-page" id="voc-admin-page" hidden>
         <div class="subpage-header">
           <button id="close-voc-admin-btn" class="back-btn" type="button">← 献立作成に戻る</button>
-          <span class="subpage-kicker">開発者専用</span>
+          <span class="developer-console-badge"><span aria-hidden="true">●</span> ADMIN CONSOLE</span>
         </div>
         <div class="voc-admin-heading">
           <div>
-            <p class="health-kicker">VOICE OF CUSTOMER</p>
-            <h2>VOC管理</h2>
+            <p class="developer-console-kicker">RECIPE TA / DEVELOPER TOOLS</p>
+            <h2>運用ダッシュボード</h2>
           </div>
           <div class="voc-admin-account-actions">
             <span id="voc-total-count" class="health-month">0件</span>
+            <button id="open-announcement-admin-btn" class="console-action-btn" type="button"><span aria-hidden="true">↗</span> お知らせ配信</button>
             <button id="open-registrants-btn" class="secondary-btn" type="button">登録者一覧</button>
-            <button id="voc-logout-btn" class="secondary-btn" type="button">ログアウト</button>
+            <button id="voc-logout-btn" class="secondary-btn console-logout-btn" type="button">ログアウト</button>
           </div>
         </div>
+        <p class="developer-console-intro"><span class="console-prompt" aria-hidden="true">&gt;_</span> VOC対応、ユーザー管理、お知らせ配信を行う開発者用コンソールです。</p>
         <section class="voc-summary" aria-label="VOC対応状況">
           <article class="voc-summary-card"><span>受信箱</span><strong id="voc-open-count">0</strong></article>
           <article class="voc-summary-card"><span>未対応</span><strong id="voc-unhandled-count">0</strong></article>
@@ -510,6 +512,46 @@
         </div>
       </section>
 
+      <section class="panel subpage announcement-admin-page" id="announcement-admin-page" hidden>
+        <div class="subpage-header">
+          <button id="close-announcement-admin-btn" class="back-btn" type="button">← 運用ダッシュボード</button>
+          <span class="developer-console-badge"><span aria-hidden="true">●</span> BROADCAST CENTER</span>
+        </div>
+        <div class="announcement-admin-heading">
+          <div>
+            <p class="developer-console-kicker">GLOBAL MESSAGES / ALL USERS</p>
+            <h2>お知らせ配信</h2>
+            <p>ここから送信したメッセージは、全ユーザーのお知らせページに掲載されます。</p>
+          </div>
+          <div class="announcement-admin-status"><span aria-hidden="true"></span> <span id="announcement-admin-count">0</span> 件配信済み</div>
+        </div>
+        <form id="announcement-form" class="announcement-form">
+          <label>
+            タイトル
+            <input id="announcement-title" type="text" maxlength="100" required placeholder="例：新機能のお知らせ" />
+          </label>
+          <label>
+            メッセージ
+            <textarea id="announcement-body" maxlength="2000" rows="5" required placeholder="全ユーザーに伝える内容を入力してください"></textarea>
+          </label>
+          <div class="announcement-publish-note"><span aria-hidden="true">◎</span> 配信すると、ログイン中の全ユーザーにすぐ表示されます。</div>
+          <div class="announcement-form-actions">
+            <p id="announcement-admin-message" class="mypage-message" aria-live="polite"></p>
+            <button id="announcement-submit-btn" class="console-publish-btn" type="submit"><span aria-hidden="true">↗</span> 全ユーザーへ配信</button>
+          </div>
+        </form>
+        <div class="announcement-history-header">
+          <div>
+            <p class="developer-console-kicker">PUBLISHED MESSAGES</p>
+            <h3>配信履歴</h3>
+          </div>
+          <button id="announcement-refresh-btn" class="secondary-btn" type="button">一覧を更新</button>
+        </div>
+        <div id="announcement-admin-list" class="announcements-list">
+          <p class="empty-message">配信履歴を読み込んでいます...</p>
+        </div>
+      </section>
+
       <section class="panel subpage registrants-page" id="registrants-page" hidden>
         <div class="subpage-header">
           <button id="close-registrants-btn" class="back-btn" type="button">← VOC管理に戻る</button>
@@ -553,7 +595,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
-    <script src="announcements.js?v=20261010-static-announcements"></script>
-    <script src="script.js?v=20261010-health-trend"></script>
+    <script src="announcements.js?v=20261010-developer-broadcast"></script>
+    <script src="script.js?v=20261010-developer-broadcast"></script>
   </body>
 </html>

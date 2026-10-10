@@ -81,7 +81,11 @@ const resetLocalDataButton = document.getElementById('reset-local-data-btn');
 const deleteAccountPasswordInput = document.getElementById('delete-account-password');
 const deleteAccountButton = document.getElementById('delete-account-btn');
 const vocAdminPage = document.getElementById('voc-admin-page');
+const announcementAdminPage = document.getElementById('announcement-admin-page');
 const registrantsPage = document.getElementById('registrants-page');
+const openAnnouncementAdminButton = document.getElementById('open-announcement-admin-btn');
+const closeAnnouncementAdminButton = document.getElementById('close-announcement-admin-btn');
+const announcementRefreshButton = document.getElementById('announcement-refresh-btn');
 const openRegistrantsButton = document.getElementById('open-registrants-btn');
 const closeRegistrantsButton = document.getElementById('close-registrants-btn');
 const registrantsSearch = document.getElementById('registrants-search');
@@ -227,19 +231,19 @@ function renderMypageProfile() {
 function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
-  emailField.hidden = isDeveloperMode;
+  emailField.hidden = false;
   emailField.classList.remove('hidden');
-  authEmailInput.required = !isDeveloperMode;
-  authEmailInput.disabled = isDeveloperMode;
+  authEmailInput.required = true;
+  authEmailInput.disabled = false;
   authEmailInput.placeholder = 'name@gmail.com';
-  authPasswordInput.minLength = isDeveloperMode ? 0 : 6;
+  authPasswordInput.minLength = 6;
   authForm.noValidate = false;
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? '開発者用パスワードを入力してください。'
+    ? 'Supabase Authに登録済みの開発者アカウントでログインしてください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : '新しいメールアドレスでアカウントを作成します。';
@@ -254,7 +258,7 @@ function showAuthView(message = '') {
 
 function showAppView() {
   syncCurrentUserBadge();
-  mypageButton.textContent = getCurrentUser()?.role === 'developer' ? 'VOC管理' : 'マイページ';
+  mypageButton.textContent = getCurrentUser()?.role === 'developer' ? '開発者コンソール' : 'マイページ';
   authView.hidden = true;
   appShell.hidden = false;
   renderUserData();
@@ -284,34 +288,45 @@ async function handleAuthSubmit(event) {
   const email = authEmailInput.value.trim();
   const password = authPasswordInput.value.trim();
 
-  if ((!email && authMode !== 'developer') || !password) {
+  if (!email || !password) {
     authMessage.textContent = 'メールアドレスとパスワードを入力してください。';
     return;
   }
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (authMode !== 'developer' && !emailPattern.test(email)) {
+  if (!emailPattern.test(email)) {
     authMessage.textContent = '正しいメールアドレスを入力してください。';
     return;
   }
 
   if (authMode === 'developer') {
-    if (!password) {
-      authMessage.textContent = '開発者用パスワードを入力してください。';
+    if (!supabaseClient) {
+      authMessage.textContent = '開発者ログインを利用するには、SupabaseのURLと公開キーを設定してください。';
       return;
     }
 
-    if (password !== 'kai1.meal') {
-      authMessage.textContent = '開発者用パスワードが違います。';
-      return;
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: getSafeEmail(email),
+        password
+      });
+      if (error) throw error;
+      const authUser = data.user || data.session?.user;
+      if (!authUser || authUser.app_metadata?.role !== 'developer') {
+        await supabaseClient.auth.signOut();
+        authMessage.textContent = 'このアカウントには開発者権限がありません。';
+        return;
+      }
+      completeSuccessfulLogin({
+        id: authUser.id,
+        email: authUser.email,
+        createdAt: authUser.created_at,
+        role: 'developer'
+      });
+    } catch (error) {
+      console.error('開発者ログインに失敗しました', error);
+      authMessage.textContent = error.message || '開発者ログインに失敗しました。Supabase Authの設定を確認してください。';
     }
-
-    completeSuccessfulLogin({
-      id: 'developer-local',
-      email: 'developer@kai1.meal',
-      createdAt: new Date().toISOString(),
-      role: 'developer'
-    });
     return;
   }
 
@@ -440,7 +455,7 @@ function closeMypage() {
 function openVocAdminPage() {
   const user = getCurrentUser();
   if (!user || user.role !== 'developer') {
-    showAuthView('VOC管理は開発者アカウントでログインしてください。');
+    showAuthView('開発者コンソールは開発者アカウントでログインしてください。');
     return;
   }
 
@@ -448,6 +463,21 @@ function openVocAdminPage() {
   plannerView.hidden = true;
   vocAdminPage.hidden = false;
   window.vocManager?.loadAdmin();
+  window.announcementsManager?.loadAdmin();
+}
+
+function openAnnouncementAdminPage() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    showAuthView('お知らせ配信は開発者アカウントでログインしてください。');
+    return;
+  }
+
+  hideSubpages();
+  plannerView.hidden = true;
+  announcementAdminPage.hidden = false;
+  window.announcementsManager?.loadAdmin();
+  document.getElementById('announcement-title').focus();
 }
 
 function escapeHtml(value) {
@@ -779,7 +809,8 @@ function handleDeveloperLogin() {
   authEmailInput.value = '';
   authPasswordInput.value = '';
   setAuthMode('developer');
-  authPasswordInput.focus();
+  if (supabaseClient) authEmailInput.focus();
+  else authMessage.textContent = '開発者ログインはSupabase設定後に利用できます。';
 }
 
 function returnToUserLogin() {
@@ -1929,7 +1960,10 @@ async function initializeAuthFlow() {
   }
 
   if (savedUser.role === 'developer') {
-    completeSuccessfulLogin(savedUser);
+    clearStoredCurrentUser();
+    clearCurrentUser();
+    setAuthMode('developer');
+    showAuthView('安全のため、開発者ログインはSupabase Authで再認証してください。');
     return;
   }
 
@@ -1960,6 +1994,7 @@ function hideSubpages() {
   healthLogPage.hidden = true;
   mypagePanel.hidden = true;
   vocAdminPage.hidden = true;
+  announcementAdminPage.hidden = true;
   registrantsPage.hidden = true;
 }
 
@@ -2247,6 +2282,9 @@ resetLocalDataButton.addEventListener('click', resetUserLocalData);
 deleteAccountButton.addEventListener('click', handleDeleteAccount);
 openRegistrantsButton.addEventListener('click', openRegistrantsPage);
 closeRegistrantsButton.addEventListener('click', closeRegistrantsPage);
+openAnnouncementAdminButton.addEventListener('click', openAnnouncementAdminPage);
+closeAnnouncementAdminButton.addEventListener('click', openVocAdminPage);
+announcementRefreshButton.addEventListener('click', () => window.announcementsManager?.loadAdmin());
 registrantsSearch.addEventListener('input', renderRegistrants);
 registrantsRefreshButton.addEventListener('click', renderRegistrants);
 registrantsExportButton.addEventListener('click', exportRegistrantsCsv);
