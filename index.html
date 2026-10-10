@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261008-responsive" />
+    <link rel="stylesheet" href="styles.css?v=20261010-announcements" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -41,6 +41,7 @@
 
           <div class="auth-dev-actions">
             <button id="dev-login-btn" type="button" class="dev-login-btn">開発者ログイン</button>
+            <button id="auth-back-btn" type="button" class="auth-back-btn" hidden>← 通常のログインに戻る</button>
           </div>
 
           <p id="auth-message" class="auth-message" aria-live="polite"></p>
@@ -71,6 +72,10 @@
             <button id="open-history-btn" class="utility-icon-btn" type="button" aria-label="献立履歴を開く" title="献立履歴を開く">
               <span aria-hidden="true">🕘</span>
               <span id="history-count" class="utility-count">0</span>
+            </button>
+            <button id="open-announcements-btn" class="utility-icon-btn" type="button" aria-label="お知らせを開く" title="お知らせを開く">
+              <span aria-hidden="true">📢</span>
+              <span id="announcement-count" class="utility-count" hidden>0</span>
             </button>
             <button id="open-bookmarks-btn" class="utility-icon-btn" type="button" aria-label="ブックマークを開く" title="ブックマークを開く">
               <span aria-hidden="true">🔖</span>
@@ -231,6 +236,19 @@
         <p class="subpage-description">最近作った献立を、いつでも呼び戻せます。</p>
         <div id="history-list" class="history-list">
           <p class="empty-message">履歴はまだありません</p>
+        </div>
+      </section>
+
+      <section class="panel subpage announcements-page" id="announcements-page" hidden>
+        <div class="subpage-header">
+          <button id="close-announcements-btn" class="back-btn" type="button">← 献立作成に戻る</button>
+          <span class="subpage-kicker">RecipeTaからのお知らせ</span>
+        </div>
+        <h2>お知らせ</h2>
+        <p class="subpage-description">アプリのアップデートや大切なご案内をお届けします。</p>
+        <p id="announcements-message" class="mypage-message" aria-live="polite"></p>
+        <div id="announcements-list" class="announcements-list">
+          <p class="empty-message">お知らせを読み込んでいます...</p>
         </div>
       </section>
 
@@ -406,6 +424,7 @@
           </div>
           <div class="voc-admin-account-actions">
             <span id="voc-total-count" class="health-month">0件</span>
+            <button id="open-announcement-admin-btn" class="secondary-btn" type="button">お知らせ管理</button>
             <button id="voc-logout-btn" class="secondary-btn" type="button">ログアウト</button>
           </div>
         </div>
@@ -447,11 +466,44 @@
           </table>
         </div>
       </section>
+
+      <section class="panel subpage voc-admin-page announcement-admin-page" id="announcement-admin-page" hidden>
+        <div class="subpage-header">
+          <button id="close-announcement-admin-btn" class="back-btn" type="button">← VOC管理に戻る</button>
+          <span class="subpage-kicker">開発者専用</span>
+        </div>
+        <div class="voc-admin-heading">
+          <div>
+            <p class="health-kicker">APP ANNOUNCEMENTS</p>
+            <h2>お知らせ管理</h2>
+          </div>
+        </div>
+        <form id="announcement-form" class="announcement-form">
+          <label>
+            タイトル
+            <input id="announcement-title" type="text" maxlength="100" required placeholder="アップデートのお知らせ" />
+          </label>
+          <label>
+            内容
+            <textarea id="announcement-body" maxlength="2000" rows="5" required placeholder="変更内容や新機能について入力してください"></textarea>
+          </label>
+          <p class="announcement-publish-note">送信すると、すべてのユーザーのお知らせページにすぐ掲載されます。</p>
+          <div class="announcement-form-actions">
+            <p id="announcement-admin-message" class="mypage-message" aria-live="polite"></p>
+            <button id="announcement-submit-btn" class="primary-btn" type="submit">全ユーザーへお知らせを送信</button>
+          </div>
+        </form>
+        <h3 class="announcement-history-heading">送信済みのお知らせ</h3>
+        <div id="announcement-admin-list" class="announcements-list">
+          <p class="empty-message">お知らせを読み込んでいます...</p>
+        </div>
+      </section>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
-    <script src="script.js?v=20261008-voc-setup"></script>
+    <script src="announcements.js?v=20261010-announcements"></script>
+    <script src="script.js?v=20261010-announcements"></script>
   </body>
 </html>

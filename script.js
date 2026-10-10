@@ -11,10 +11,16 @@ const shoppingPage = document.getElementById('shopping-page');
 const historyPage = document.getElementById('history-page');
 const openShoppingButton = document.getElementById('open-shopping-btn');
 const openHistoryButton = document.getElementById('open-history-btn');
+const openAnnouncementsButton = document.getElementById('open-announcements-btn');
 const closeShoppingButton = document.getElementById('close-shopping-btn');
 const closeHistoryButton = document.getElementById('close-history-btn');
+const closeAnnouncementsButton = document.getElementById('close-announcements-btn');
 const shoppingList = document.getElementById('shopping-list');
 const historyList = document.getElementById('history-list');
+const announcementsPage = document.getElementById('announcements-page');
+const announcementAdminPage = document.getElementById('announcement-admin-page');
+const openAnnouncementAdminButton = document.getElementById('open-announcement-admin-btn');
+const closeAnnouncementAdminButton = document.getElementById('close-announcement-admin-btn');
 const clearHistoryButton = document.getElementById('clear-history-btn');
 const historyCount = document.getElementById('history-count');
 const mealDetailPage = document.getElementById('meal-detail-page');
@@ -53,6 +59,7 @@ const authPasswordInput = document.getElementById('auth-password');
 const authSubmitButton = document.getElementById('auth-submit-btn');
 const authSwitchButton = document.getElementById('auth-switch-btn');
 const devLoginButton = document.getElementById('dev-login-btn');
+const authBackButton = document.getElementById('auth-back-btn');
 const emailField = document.getElementById('email-field');
 const authMessage = document.getElementById('auth-message');
 const currentUserName = document.getElementById('current-user-name');
@@ -209,16 +216,19 @@ function renderMypageProfile() {
 function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
-  emailField.hidden = isDeveloperMode;
+  emailField.hidden = false;
   emailField.classList.remove('hidden');
-  authEmailInput.required = !isDeveloperMode;
-  authEmailInput.disabled = isDeveloperMode;
-  authPasswordInput.minLength = isDeveloperMode ? 0 : 6;
+  authEmailInput.required = true;
+  authEmailInput.disabled = false;
+  authEmailInput.placeholder = isDeveloperMode ? '開発者アカウントのメールアドレス' : 'name@gmail.com';
+  authPasswordInput.minLength = 6;
   authForm.noValidate = false;
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
+  devLoginButton.hidden = isDeveloperMode;
+  authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? '開発者ログインではメールアドレスは不要です。開発者用パスワードを入力してください。'
+    ? 'Supabase Authで開発者ロールを設定したアカウントでログインしてください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : '新しいメールアドレスでアカウントを作成します。';
@@ -237,6 +247,7 @@ function showAppView() {
   authView.hidden = true;
   appShell.hidden = false;
   renderUserData();
+  window.announcementsManager?.refreshCount();
 }
 
 function completeSuccessfulLogin(user) {
@@ -259,29 +270,8 @@ function renderUserData() {
 async function handleAuthSubmit(event) {
   event.preventDefault();
 
-  const password = authPasswordInput.value.trim();
-
-  if (authMode === 'developer') {
-    if (!password) {
-      authMessage.textContent = '開発者用パスワードを入力してください。';
-      return;
-    }
-
-    if (password !== 'kai1.meal') {
-      authMessage.textContent = '開発者用パスワードが違います。';
-      return;
-    }
-
-    completeSuccessfulLogin({
-      id: 'developer-local',
-      email: 'developer@kai1.meal',
-      createdAt: new Date().toISOString(),
-      role: 'developer'
-    });
-    return;
-  }
-
   const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value.trim();
 
   if (!email || !password) {
     authMessage.textContent = 'メールアドレスとパスワードを入力してください。';
@@ -291,6 +281,46 @@ async function handleAuthSubmit(event) {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
     authMessage.textContent = '正しいメールアドレスを入力してください。';
+    return;
+  }
+
+  if (authMode === 'developer') {
+    if (!supabaseClient) {
+      authMessage.textContent = '開発者ログインにはSupabaseのURL・anon key設定が必要です。';
+      return;
+    }
+
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: getSafeEmail(email),
+        password
+      });
+      if (error) {
+        authMessage.textContent = error.message || '開発者ログインに失敗しました。';
+        return;
+      }
+      const authUser = data.user || data.session?.user;
+      if (!authUser) {
+        authMessage.textContent = '認証情報を確認できませんでした。';
+        return;
+      }
+      if (authUser.app_metadata?.role !== 'developer') {
+        const { error: signOutError } = await supabaseClient.auth.signOut();
+        if (signOutError) console.error('権限のないログイン状態を終了できませんでした', signOutError);
+        authMessage.textContent = 'このアカウントに開発者権限がありません。';
+        return;
+      }
+
+      completeSuccessfulLogin({
+        id: authUser.id,
+        email: authUser.email,
+        createdAt: authUser.created_at,
+        role: 'developer'
+      });
+    } catch (error) {
+      console.error('開発者ログインに失敗しました', error);
+      authMessage.textContent = error.message || '開発者ログインに失敗しました。時間をおいて再度お試しください。';
+    }
     return;
   }
 
@@ -321,7 +351,7 @@ async function handleAuthSubmit(event) {
         id: authUser.id,
         email: authUser.email,
         createdAt: authUser.created_at,
-        role: 'user'
+        role: authUser.app_metadata?.role === 'developer' ? 'developer' : 'user'
       });
       return;
     } catch (error) {
@@ -372,6 +402,15 @@ async function handleAuthSubmit(event) {
 }
 
 async function handleLogout() {
+  if (supabaseClient) {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      console.error('ログアウトできませんでした', error);
+      mypageMessage.textContent = error.message || 'ログアウトできませんでした。時間をおいて再度お試しください。';
+      return;
+    }
+  }
+
   clearStoredCurrentUser();
   clearCurrentUser();
   authForm.reset();
@@ -418,6 +457,27 @@ function openVocAdminPage() {
   plannerView.hidden = true;
   vocAdminPage.hidden = false;
   window.vocManager?.loadAdmin();
+}
+
+function openAnnouncementsPage() {
+  hideSubpages();
+  plannerView.hidden = true;
+  announcementsPage.hidden = false;
+  window.announcementsManager?.loadMine();
+  closeAnnouncementsButton.focus();
+}
+
+function openAnnouncementAdminPage() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    showAuthView('お知らせ管理は開発者アカウントでログインしてください。');
+    return;
+  }
+
+  hideSubpages();
+  plannerView.hidden = true;
+  announcementAdminPage.hidden = false;
+  window.announcementsManager?.loadAdmin();
 }
 
 async function handleMypageSubmit(event) {
@@ -603,8 +663,15 @@ function togglePasswordVisibility(event) {
 function handleDeveloperLogin() {
   authEmailInput.value = '';
   authPasswordInput.value = '';
-  authPasswordInput.focus();
   setAuthMode('developer');
+  authEmailInput.focus();
+}
+
+function returnToUserLogin() {
+  authEmailInput.value = '';
+  authPasswordInput.value = '';
+  setAuthMode('signin');
+  authEmailInput.focus();
 }
 
 
@@ -1091,6 +1158,64 @@ function getMealIngredients(meal) {
   return matched ? matched[1] : ['主菜の食材', '野菜を2〜3種類', '調味料', 'ご飯またはパン'];
 }
 
+function getIngredientMeasure(ingredient) {
+  if (/ご飯またはパン/.test(ingredient)) return { amount: 2, unit: '人分' };
+  if (/ご飯|雑穀米/.test(ingredient)) return { amount: 300, unit: 'g' };
+  if (/卵/.test(ingredient)) return { amount: 2, unit: '個' };
+  if (/鮭の切り身/.test(ingredient)) return { amount: 2, unit: '切れ' };
+  if (/刺身/.test(ingredient)) return { amount: 200, unit: 'g' };
+  if (/鶏|豚|牛|ひき肉|合いびき肉|肉/.test(ingredient)) return { amount: 200, unit: 'g' };
+  if (/豆腐/.test(ingredient)) return { amount: 300, unit: 'g' };
+  if (/食パン/.test(ingredient)) return { amount: 2, unit: '枚' };
+  if (/うどん/.test(ingredient)) return { amount: 2, unit: '玉' };
+  if (/パスタ|マカロニ/.test(ingredient)) return { amount: 160, unit: 'g' };
+  if (/ヨーグルト/.test(ingredient)) return { amount: 200, unit: 'g' };
+  if (/バナナ/.test(ingredient)) return { amount: 2, unit: '本' };
+  if (/ベリー/.test(ingredient)) return { amount: 50, unit: 'g' };
+  if (/牛乳/.test(ingredient)) return { amount: 200, unit: 'ml' };
+  if (/チーズ/.test(ingredient)) return { amount: 40, unit: 'g' };
+  if (/パン粉|小麦粉|片栗粉/.test(ingredient)) return { amount: 2, unit: '大さじ' };
+  if (/カレールー|シチューのルー/.test(ingredient)) return { amount: 2, unit: '皿分' };
+  if (/コンソメ/.test(ingredient)) return { amount: 1, unit: '個' };
+  if (/ベーコン|ハム/.test(ingredient)) return { amount: 2, unit: '枚' };
+  if (/ツナ/.test(ingredient)) return { amount: 1, unit: '缶' };
+  if (/ドレッシング|ポン酢|焼き肉のたれ|ケチャップ|はちみつ/.test(ingredient)) return { amount: 2, unit: '大さじ' };
+  if (/ソース/.test(ingredient)) return { amount: 2, unit: '大さじ' };
+  if (/しょうゆ|醤油|みりん|酢|オリーブオイル|ごま油|バター|油/.test(ingredient)) return { amount: 1, unit: '大さじ' };
+  if (/味噌/.test(ingredient)) return { amount: 2, unit: '大さじ' };
+  if (/砂糖|豆板醤|わさび|塩|こしょう/.test(ingredient)) return { amount: 1, unit: '小さじ' };
+  if (/だしつゆ|めんつゆ|鍋つゆ|だし/.test(ingredient)) return { amount: 300, unit: 'ml' };
+  if (/主菜の食材/.test(ingredient)) return { amount: 200, unit: 'g' };
+  if (/野菜を2〜3種類/.test(ingredient)) return { amount: 200, unit: 'g' };
+  if (/調味料/.test(ingredient)) return { amount: 1, unit: '大さじ' };
+  if (/玉ねぎ/.test(ingredient)) return { amount: 1, unit: '個' };
+  if (/じゃがいも/.test(ingredient)) return { amount: 2, unit: '個' };
+  if (/にんじん/.test(ingredient)) return { amount: 1, unit: '本' };
+  if (/きゅうり/.test(ingredient)) return { amount: 1, unit: '本' };
+  if (/しょうが/.test(ingredient)) return { amount: 1, unit: '片' };
+  if (/ねぎ/.test(ingredient)) return { amount: 1, unit: '本' };
+  if (/トマト/.test(ingredient)) return { amount: 1, unit: '個' };
+  if (/焼き芋/.test(ingredient)) return { amount: 2, unit: '本' };
+  if (/キャベツ|レタス|ほうれん草|小松菜|白菜|きのこ|ブロッコリー|大根|茄子|ピーマン|コーン|ひじき|わかめ|切り干し大根/.test(ingredient)) {
+    return { amount: 100, unit: 'g' };
+  }
+  if (/のり/.test(ingredient)) return { amount: 2, unit: '枚' };
+  if (/かつお節/.test(ingredient)) return { amount: 1, unit: '袋' };
+  return { amount: 1, unit: '適量' };
+}
+
+function formatMealIngredients(meal, people) {
+  const servingCount = Math.max(1, Number(people) || 1);
+  return getMealIngredients(meal).flatMap((item) => item.split('・').map((ingredient) => {
+    const { amount, unit } = getIngredientMeasure(ingredient);
+    const scaledAmount = amount * servingCount / 2;
+    if (unit === '適量') return `${ingredient}：適量`;
+    const formattedAmount = Number.isInteger(scaledAmount) ? scaledAmount : Number(scaledAmount.toFixed(1));
+    const measure = unit === '大さじ' || unit === '小さじ' ? `${unit}${formattedAmount}` : `${formattedAmount}${unit}`;
+    return `${ingredient}：${measure}`;
+  }));
+}
+
 const balanceHints = {
   standard: {
     heading: 'バランス重視の献立です。',
@@ -1151,7 +1276,7 @@ function buildPatterns(moodMenu, count = 3) {
 
 function buildGuide(meal, people) {
   const nutrition = getMealNutrition(meal);
-  const ingredients = getMealIngredients(meal);
+  const ingredients = formatMealIngredients(meal, people);
 
   return `
     <div class="guide-card">
@@ -1264,9 +1389,9 @@ function renderMealDetail(meal, mealLabel, people) {
     <div class="meal-detail-grid">
       <section class="detail-section">
         <h3>必要な材料</h3>
-        <p class="detail-note">${people}人分の目安です。人数に合わせて調整してください。</p>
+        <p class="detail-note">${people}人分の目安です。分量は材料や好みに合わせて調整してください。</p>
         <ul class="detail-ingredients">
-          ${getMealIngredients(meal).map((ingredient) => `<li>${ingredient}</li>`).join('')}
+          ${formatMealIngredients(meal, people).map((ingredient) => `<li>${ingredient}</li>`).join('')}
         </ul>
       </section>
       <section class="detail-section detail-nutrition">
@@ -1473,7 +1598,7 @@ function renderShoppingList() {
     <section class="shopping-group">
       <h3>${label}・${meal.name}</h3>
       <div class="shopping-items">
-        ${getMealIngredients(meal).map((ingredient) => {
+        ${formatMealIngredients(meal, plan.values.people).map((ingredient) => {
           const key = getShoppingKey(plan, meal.name, ingredient);
           return `
             <label class="shopping-item">
@@ -1553,7 +1678,7 @@ async function initializeAuthFlow() {
           id: authUser.id,
           email: authUser.email,
           createdAt: authUser.created_at,
-          role: 'user'
+          role: authUser.app_metadata?.role === 'developer' ? 'developer' : 'user'
         });
         return;
       }
@@ -1590,11 +1715,13 @@ function hideSubpages() {
   bookmarksPage.hidden = true;
   shoppingPage.hidden = true;
   historyPage.hidden = true;
+  announcementsPage.hidden = true;
   mealDetailPage.hidden = true;
   fridgePage.hidden = true;
   healthLogPage.hidden = true;
   mypagePanel.hidden = true;
   vocAdminPage.hidden = true;
+  announcementAdminPage.hidden = true;
 }
 
 function showPlanner() {
@@ -1635,6 +1762,11 @@ openBookmarksButton.addEventListener('click', () => {
   bookmarksPage.hidden = false;
   closeBookmarksButton.focus();
 });
+
+openAnnouncementsButton.addEventListener('click', openAnnouncementsPage);
+closeAnnouncementsButton.addEventListener('click', showPlanner);
+openAnnouncementAdminButton.addEventListener('click', openAnnouncementAdminPage);
+closeAnnouncementAdminButton.addEventListener('click', openVocAdminPage);
 
 closeBookmarksButton.addEventListener('click', () => {
   showPlanner();
@@ -1854,6 +1986,7 @@ authSwitchButton.addEventListener('click', () => {
   authEmailInput.focus();
 });
 devLoginButton.addEventListener('click', handleDeveloperLogin);
+authBackButton.addEventListener('click', returnToUserLogin);
 mypageButton.addEventListener('click', openMypage);
 closeMypageButton.addEventListener('click', closeMypage);
 mypageForm.addEventListener('submit', handleMypageSubmit);

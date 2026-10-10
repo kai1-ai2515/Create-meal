@@ -231,9 +231,18 @@
     vocAdminPage.hidden = true;
     document.querySelector('.content').hidden = false;
   });
-  vocLogoutButton.addEventListener('click', () => {
-    localStorage.removeItem('meal-planner-current-user');
-    window.location.reload();
+  vocLogoutButton.addEventListener('click', async () => {
+    try {
+      if (window.mealSupabaseClient) {
+        const { error } = await window.mealSupabaseClient.auth.signOut();
+        if (error) throw error;
+      }
+      localStorage.removeItem('meal-planner-current-user');
+      window.location.reload();
+    } catch (error) {
+      console.error('開発者ログアウトに失敗しました', error);
+      vocAdminMessage.textContent = error.message || 'ログアウトできませんでした。時間をおいて再度お試しください。';
+    }
   });
 
   vocTableBody.addEventListener('change', async (event) => {
