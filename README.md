@@ -1,12 +1,5 @@
 # レシピタ
 
-## アップデートのお知らせ機能
+## アップデートのお知らせ
 
-お知らせはSupabaseに保存し、全ユーザーのお知らせページへ配信します。
-
-1. `supabase-config.js` の `url` と `anonKey` にSupabaseプロジェクトのURLと公開用anon keyを設定します。`service_role` keyはブラウザーに設定しないでください。
-2. SupabaseのSQL Editorで [`supabase/announcements.sql`](./supabase/announcements.sql) を実行します。
-3. Supabase Authで開発者アカウントを作成し、信頼できるアカウントの `app_metadata` に `{"role":"developer"}` を設定します。SQL Editorで設定する場合の例はSQLファイル末尾にあります。
-4. 開発者ログイン画面からそのアカウントでログインし、VOC管理の「お知らせ管理」から送信します。送信したお知らせは全ユーザーに即時公開されます。
-
-投稿権限はブラウザー内の表示状態ではなく、Supabase Authの開発者ロールとテーブルのRLSポリシーで制限されます。ユーザーはアプリ内の📢ボタンからお知らせを確認できます。
+お知らせは [`announcements.js`](./announcements.js) の一覧で管理します。アプリを更新するときにタイトル・本文・公開日時・一意のIDを追加すると、ユーザーのお知らせページと未読バッジに反映されます。外部サービスや追加設定は必要ありません。

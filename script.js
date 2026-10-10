@@ -18,9 +18,6 @@ const closeAnnouncementsButton = document.getElementById('close-announcements-bt
 const shoppingList = document.getElementById('shopping-list');
 const historyList = document.getElementById('history-list');
 const announcementsPage = document.getElementById('announcements-page');
-const announcementAdminPage = document.getElementById('announcement-admin-page');
-const openAnnouncementAdminButton = document.getElementById('open-announcement-admin-btn');
-const closeAnnouncementAdminButton = document.getElementById('close-announcement-admin-btn');
 const clearHistoryButton = document.getElementById('clear-history-btn');
 const historyCount = document.getElementById('history-count');
 const mealDetailPage = document.getElementById('meal-detail-page');
@@ -216,19 +213,19 @@ function renderMypageProfile() {
 function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
-  emailField.hidden = false;
+  emailField.hidden = isDeveloperMode;
   emailField.classList.remove('hidden');
-  authEmailInput.required = true;
-  authEmailInput.disabled = false;
-  authEmailInput.placeholder = isDeveloperMode ? '開発者アカウントのメールアドレス' : 'name@gmail.com';
-  authPasswordInput.minLength = 6;
+  authEmailInput.required = !isDeveloperMode;
+  authEmailInput.disabled = isDeveloperMode;
+  authEmailInput.placeholder = 'name@gmail.com';
+  authPasswordInput.minLength = isDeveloperMode ? 0 : 6;
   authForm.noValidate = false;
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? 'Supabase Authで開発者ロールを設定したアカウントでログインしてください。'
+    ? '開発者用パスワードを入力してください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : '新しいメールアドレスでアカウントを作成します。';
@@ -273,54 +270,34 @@ async function handleAuthSubmit(event) {
   const email = authEmailInput.value.trim();
   const password = authPasswordInput.value.trim();
 
-  if (!email || !password) {
+  if ((!email && authMode !== 'developer') || !password) {
     authMessage.textContent = 'メールアドレスとパスワードを入力してください。';
     return;
   }
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(email)) {
+  if (authMode !== 'developer' && !emailPattern.test(email)) {
     authMessage.textContent = '正しいメールアドレスを入力してください。';
     return;
   }
 
   if (authMode === 'developer') {
-    if (!supabaseClient) {
-      authMessage.textContent = '開発者ログインにはSupabaseのURL・anon key設定が必要です。';
+    if (!password) {
+      authMessage.textContent = '開発者用パスワードを入力してください。';
       return;
     }
 
-    try {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: getSafeEmail(email),
-        password
-      });
-      if (error) {
-        authMessage.textContent = error.message || '開発者ログインに失敗しました。';
-        return;
-      }
-      const authUser = data.user || data.session?.user;
-      if (!authUser) {
-        authMessage.textContent = '認証情報を確認できませんでした。';
-        return;
-      }
-      if (authUser.app_metadata?.role !== 'developer') {
-        const { error: signOutError } = await supabaseClient.auth.signOut();
-        if (signOutError) console.error('権限のないログイン状態を終了できませんでした', signOutError);
-        authMessage.textContent = 'このアカウントに開発者権限がありません。';
-        return;
-      }
-
-      completeSuccessfulLogin({
-        id: authUser.id,
-        email: authUser.email,
-        createdAt: authUser.created_at,
-        role: 'developer'
-      });
-    } catch (error) {
-      console.error('開発者ログインに失敗しました', error);
-      authMessage.textContent = error.message || '開発者ログインに失敗しました。時間をおいて再度お試しください。';
+    if (password !== 'kai1.meal') {
+      authMessage.textContent = '開発者用パスワードが違います。';
+      return;
     }
+
+    completeSuccessfulLogin({
+      id: 'developer-local',
+      email: 'developer@kai1.meal',
+      createdAt: new Date().toISOString(),
+      role: 'developer'
+    });
     return;
   }
 
@@ -465,19 +442,6 @@ function openAnnouncementsPage() {
   announcementsPage.hidden = false;
   window.announcementsManager?.loadMine();
   closeAnnouncementsButton.focus();
-}
-
-function openAnnouncementAdminPage() {
-  const user = getCurrentUser();
-  if (!user || user.role !== 'developer') {
-    showAuthView('お知らせ管理は開発者アカウントでログインしてください。');
-    return;
-  }
-
-  hideSubpages();
-  plannerView.hidden = true;
-  announcementAdminPage.hidden = false;
-  window.announcementsManager?.loadAdmin();
 }
 
 async function handleMypageSubmit(event) {
@@ -664,7 +628,7 @@ function handleDeveloperLogin() {
   authEmailInput.value = '';
   authPasswordInput.value = '';
   setAuthMode('developer');
-  authEmailInput.focus();
+  authPasswordInput.focus();
 }
 
 function returnToUserLogin() {
@@ -1721,7 +1685,6 @@ function hideSubpages() {
   healthLogPage.hidden = true;
   mypagePanel.hidden = true;
   vocAdminPage.hidden = true;
-  announcementAdminPage.hidden = true;
 }
 
 function showPlanner() {
@@ -1765,8 +1728,6 @@ openBookmarksButton.addEventListener('click', () => {
 
 openAnnouncementsButton.addEventListener('click', openAnnouncementsPage);
 closeAnnouncementsButton.addEventListener('click', showPlanner);
-openAnnouncementAdminButton.addEventListener('click', openAnnouncementAdminPage);
-closeAnnouncementAdminButton.addEventListener('click', openVocAdminPage);
 
 closeBookmarksButton.addEventListener('click', () => {
   showPlanner();

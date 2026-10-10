@@ -629,74 +629,6 @@ body {
   justify-content: flex-end;
 }
 
-.announcement-form,
-.announcements-list,
-.announcement-history-heading,
-.announcements-page > .mypage-message,
-.announcements-page > .subpage-description {
-  max-width: 1060px;
-  margin-right: auto;
-  margin-left: auto;
-}
-
-.announcement-form {
-  display: grid;
-  gap: 14px;
-  margin-top: 20px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.86);
-}
-
-.announcement-form label {
-  display: grid;
-  gap: 7px;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.announcement-form input,
-.announcement-form textarea {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 12px;
-  background: #fffaf6;
-  color: var(--text);
-  font: inherit;
-}
-
-.announcement-form textarea {
-  min-height: 120px;
-  resize: vertical;
-  line-height: 1.6;
-}
-
-.announcement-publish-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.5;
-}
-
-.announcement-form-actions,
-.announcement-card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.announcement-form-actions .mypage-message {
-  flex: 1;
-}
-
-.announcement-history-heading {
-  margin-top: 28px;
-}
-
 .announcements-page > .subpage-description,
 .announcements-page > .mypage-message {
   margin-top: 14px;
@@ -705,6 +637,9 @@ body {
 .announcements-list {
   display: grid;
   gap: 12px;
+  max-width: 1060px;
+  margin-right: auto;
+  margin-left: auto;
   margin-top: 18px;
 }
 
@@ -732,14 +667,6 @@ body {
   line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-.announcement-admin-card .announcement-card-meta {
-  margin-bottom: 8px;
-}
-
-.announcement-admin-card h3 {
-  margin-top: 0;
 }
 
 .voc-admin-toolbar {
@@ -2188,15 +2115,6 @@ button:hover {
 
   .health-actions .health-record-btn {
     margin-left: 0;
-  }
-
-  .announcement-form {
-    padding: 14px;
-  }
-
-  .announcement-form-actions {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .meal-detail-grid {

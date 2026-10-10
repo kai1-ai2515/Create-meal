@@ -424,7 +424,6 @@
           </div>
           <div class="voc-admin-account-actions">
             <span id="voc-total-count" class="health-month">0件</span>
-            <button id="open-announcement-admin-btn" class="secondary-btn" type="button">お知らせ管理</button>
             <button id="voc-logout-btn" class="secondary-btn" type="button">ログアウト</button>
           </div>
         </div>
@@ -467,43 +466,12 @@
         </div>
       </section>
 
-      <section class="panel subpage voc-admin-page announcement-admin-page" id="announcement-admin-page" hidden>
-        <div class="subpage-header">
-          <button id="close-announcement-admin-btn" class="back-btn" type="button">← VOC管理に戻る</button>
-          <span class="subpage-kicker">開発者専用</span>
-        </div>
-        <div class="voc-admin-heading">
-          <div>
-            <p class="health-kicker">APP ANNOUNCEMENTS</p>
-            <h2>お知らせ管理</h2>
-          </div>
-        </div>
-        <form id="announcement-form" class="announcement-form">
-          <label>
-            タイトル
-            <input id="announcement-title" type="text" maxlength="100" required placeholder="アップデートのお知らせ" />
-          </label>
-          <label>
-            内容
-            <textarea id="announcement-body" maxlength="2000" rows="5" required placeholder="変更内容や新機能について入力してください"></textarea>
-          </label>
-          <p class="announcement-publish-note">送信すると、すべてのユーザーのお知らせページにすぐ掲載されます。</p>
-          <div class="announcement-form-actions">
-            <p id="announcement-admin-message" class="mypage-message" aria-live="polite"></p>
-            <button id="announcement-submit-btn" class="primary-btn" type="submit">全ユーザーへお知らせを送信</button>
-          </div>
-        </form>
-        <h3 class="announcement-history-heading">送信済みのお知らせ</h3>
-        <div id="announcement-admin-list" class="announcements-list">
-          <p class="empty-message">お知らせを読み込んでいます...</p>
-        </div>
-      </section>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
-    <script src="announcements.js?v=20261010-announcements"></script>
-    <script src="script.js?v=20261010-announcements"></script>
+    <script src="announcements.js?v=20261010-static-announcements"></script>
+    <script src="script.js?v=20261010-static-announcements"></script>
   </body>
 </html>
