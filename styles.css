@@ -629,6 +629,33 @@ body {
   justify-content: flex-end;
 }
 
+.voc-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 1060px;
+  margin: 0 auto 16px;
+}
+
+.voc-summary-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.voc-summary-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.voc-summary-card strong {
+  color: var(--accent-deep);
+  font-size: 1.3rem;
+}
+
 .announcements-page > .subpage-description,
 .announcements-page > .mypage-message {
   margin-top: 14px;
@@ -673,7 +700,7 @@ body {
   max-width: 1060px;
   margin: 0 auto 14px;
   display: grid;
-  grid-template-columns: auto minmax(180px, 1fr) minmax(150px, 0.55fr) auto;
+  grid-template-columns: auto auto minmax(180px, 1fr) minmax(150px, 0.55fr) auto;
   gap: 10px;
   align-items: center;
 }
@@ -916,6 +943,120 @@ body {
   color: var(--muted);
   font-size: 1rem;
   line-height: 1.7;
+}
+
+.recipe-search-panel {
+  margin-top: 24px;
+}
+
+.recipe-search-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 1060px;
+  margin: 0 auto 16px;
+}
+
+.recipe-search-heading h2 {
+  margin: 0;
+}
+
+.recipe-search-label {
+  display: grid;
+  gap: 7px;
+  max-width: 1060px;
+  margin: 0 auto;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.recipe-search-label input {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffaf6;
+  color: var(--text);
+  font: inherit;
+}
+
+.recipe-search-label input:focus {
+  outline: 2px solid rgba(255, 138, 61, 0.25);
+  border-color: var(--accent-strong);
+}
+
+.recipe-search-hint {
+  max-width: 1060px;
+  margin: 8px auto 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.recipe-search-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 1060px;
+  margin: 16px auto 0;
+}
+
+.recipe-search-result {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fffaf5;
+}
+
+.recipe-search-result-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recipe-search-result-heading h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.recipe-search-result-heading .duration-pill {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+
+.recipe-search-description {
+  min-height: 2.8em;
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.recipe-search-ingredients {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.recipe-search-ingredients li {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #fff2e4;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.recipe-search-empty {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
 }
 
 .health-master {
@@ -1865,10 +2006,27 @@ button:hover {
 
 .fridge-result-item p {
   min-height: 42px;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.fridge-result-ingredients {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.fridge-result-ingredients li {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #fff2e4;
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 .shopping-group {
@@ -2117,6 +2275,28 @@ button:hover {
     margin-left: 0;
   }
 
+  .voc-admin-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .voc-admin-account-actions {
+    justify-content: flex-start;
+  }
+
+  .voc-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .voc-admin-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .voc-tabs,
+  .voc-search-label {
+    grid-column: 1 / -1;
+  }
+
   .meal-detail-grid {
     grid-template-columns: 1fr;
   }
@@ -2168,10 +2348,20 @@ button:hover {
     grid-template-columns: 1fr;
   }
 
+  .recipe-search-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .health-actions {
     flex-wrap: wrap;
   }
 
+}
+
+@media (max-width: 560px) {
+  .recipe-search-results {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 561px) and (max-width: 840px) {

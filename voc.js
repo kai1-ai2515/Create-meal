@@ -14,7 +14,13 @@
   const vocSearch = document.getElementById('voc-search');
   const vocStatusFilter = document.getElementById('voc-status-filter');
   const vocRefreshButton = document.getElementById('voc-refresh-btn');
+  const vocExportButton = document.getElementById('voc-export-btn');
   const vocTotalCount = document.getElementById('voc-total-count');
+  const vocOpenCount = document.getElementById('voc-open-count');
+  const vocUnhandledCount = document.getElementById('voc-unhandled-count');
+  const vocInProgressCount = document.getElementById('voc-in-progress-count');
+  const vocResolvedCount = document.getElementById('voc-resolved-count');
+  const vocArchivedCount = document.getElementById('voc-archived-count');
   const vocAdminMessage = document.getElementById('voc-admin-message');
   const vocTableBody = document.getElementById('voc-table-body');
   const vocLogoutButton = document.getElementById('voc-logout-btn');
@@ -57,6 +63,57 @@
 
   function saveVocMessages(messages) {
     localStorage.setItem(vocStorageKey, JSON.stringify(messages));
+  }
+
+  function renderSummary(items) {
+    const inbox = items.filter((item) => !item.archivedAt);
+    vocOpenCount.textContent = String(inbox.length);
+    vocUnhandledCount.textContent = String(inbox.filter((item) => item.status === '未対応').length);
+    vocInProgressCount.textContent = String(inbox.filter((item) => item.status === '対応中').length);
+    vocResolvedCount.textContent = String(inbox.filter((item) => item.status === '対応済み').length);
+    vocArchivedCount.textContent = String(items.length - inbox.length);
+  }
+
+  function toCsvCell(value) {
+    let text = String(value ?? '');
+    if (/^[\s]*[=+\-@]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  function exportVocCsv() {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'developer') {
+      vocAdminMessage.textContent = 'CSVの書き出しには開発者権限が必要です。';
+      return;
+    }
+
+    const items = getVocMessages().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (!items.length) {
+      vocAdminMessage.textContent = '書き出すVOCがありません。';
+      return;
+    }
+
+    const columns = [
+      ['受信日時', 'createdAt'],
+      ['メールアドレス', 'userEmail'],
+      ['カテゴリ', 'category'],
+      ['件名', 'subject'],
+      ['内容', 'message'],
+      ['対応状況', 'status'],
+      ['ゴミ箱移動日時', 'archivedAt']
+    ];
+    const rows = [
+      columns.map(([label]) => toCsvCell(label)).join(','),
+      ...items.map((item) => columns.map(([, key]) => toCsvCell(item[key])).join(','))
+    ];
+    const blob = new Blob([`\uFEFF${rows.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `recipeta-voc-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    vocAdminMessage.textContent = `${items.length}件のVOCをCSVに書き出しました。`;
   }
 
   async function loadMine() {
@@ -187,7 +244,9 @@
 
     vocAdminMessage.textContent = 'VOCを読み込んでいます...';
     try {
-      const data = getVocMessages()
+      const allMessages = getVocMessages();
+      renderSummary(allMessages);
+      const data = allMessages
         .filter((item) => currentView === 'inbox' ? !item.archivedAt : !!item.archivedAt)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -227,6 +286,7 @@
   vocSearch.addEventListener('input', renderAdminList);
   vocStatusFilter.addEventListener('change', renderAdminList);
   vocRefreshButton.addEventListener('click', renderAdminList);
+  vocExportButton.addEventListener('click', exportVocCsv);
   closeVocAdminButton.addEventListener('click', () => {
     vocAdminPage.hidden = true;
     document.querySelector('.content').hidden = false;

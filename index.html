@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261010-announcements" />
+    <link rel="stylesheet" href="styles.css?v=20261010-recipe-search" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -199,6 +199,21 @@
         </section>
 
       </main>
+
+      <section class="panel recipe-search-panel" aria-labelledby="recipe-search-title">
+        <div class="recipe-search-heading">
+          <div>
+            <p class="health-kicker">FIND A RECIPE</p>
+            <h2 id="recipe-search-title">レシピを探す</h2>
+          </div>
+          <span id="recipe-search-count" class="health-month" aria-live="polite">48品</span>
+        </div>
+        <label class="recipe-search-label" for="recipe-search-input">料理名・食材・キーワード
+          <input id="recipe-search-input" type="search" maxlength="80" placeholder="例：鶏肉、トマト、時短" autocomplete="off" />
+        </label>
+        <p id="recipe-search-hint" class="recipe-search-hint">材料の分量は、上の「人数」に合わせて表示されます。</p>
+        <div id="recipe-search-results" class="recipe-search-results" aria-live="polite"></div>
+      </section>
 
       <section class="panel subpage bookmarks-page" id="bookmarks-page" hidden>
         <div class="bookmarks-header">
@@ -427,11 +442,19 @@
             <button id="voc-logout-btn" class="secondary-btn" type="button">ログアウト</button>
           </div>
         </div>
+        <section class="voc-summary" aria-label="VOC対応状況">
+          <article class="voc-summary-card"><span>受信箱</span><strong id="voc-open-count">0</strong></article>
+          <article class="voc-summary-card"><span>未対応</span><strong id="voc-unhandled-count">0</strong></article>
+          <article class="voc-summary-card"><span>対応中</span><strong id="voc-in-progress-count">0</strong></article>
+          <article class="voc-summary-card"><span>対応済み</span><strong id="voc-resolved-count">0</strong></article>
+          <article class="voc-summary-card"><span>ゴミ箱</span><strong id="voc-archived-count">0</strong></article>
+        </section>
         <div class="voc-admin-toolbar">
           <div class="voc-tabs" role="group" aria-label="表示するVOC">
             <button id="voc-inbox-tab" class="voc-tab is-active" type="button" aria-pressed="true">受信箱</button>
             <button id="voc-trash-tab" class="voc-tab" type="button" aria-pressed="false">ゴミ箱</button>
           </div>
+          <button id="voc-export-btn" class="secondary-btn" type="button">CSVを書き出す</button>
           <label class="voc-search-label">
             <span class="visually-hidden">VOCを検索</span>
             <input id="voc-search" type="search" placeholder="件名・内容・ユーザーを検索" />
@@ -472,6 +495,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-static-announcements"></script>
-    <script src="script.js?v=20261010-static-announcements"></script>
+    <script src="script.js?v=20261010-recipe-search"></script>
   </body>
 </html>

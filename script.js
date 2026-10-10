@@ -7,6 +7,10 @@ const closeBookmarksButton = document.getElementById('close-bookmarks-btn');
 const bookmarkCount = document.getElementById('bookmark-count');
 const plannerView = document.querySelector('.content');
 const bookmarksPage = document.getElementById('bookmarks-page');
+const recipeSearchInput = document.getElementById('recipe-search-input');
+const recipeSearchResults = document.getElementById('recipe-search-results');
+const recipeSearchCount = document.getElementById('recipe-search-count');
+const recipeSearchHint = document.getElementById('recipe-search-hint');
 const shoppingPage = document.getElementById('shopping-page');
 const historyPage = document.getElementById('history-page');
 const openShoppingButton = document.getElementById('open-shopping-btn');
@@ -768,6 +772,50 @@ function getAllMeals() {
   ]).filter((meal, index, meals) => meals.findIndex((item) => item.name === meal.name) === index);
 }
 
+function renderRecipeSearch() {
+  const query = recipeSearchInput.value.trim().toLocaleLowerCase();
+  const meals = getAllMeals();
+  const results = meals.filter((meal) => {
+    if (!query) return true;
+    const searchableText = [
+      meal.name,
+      meal.desc,
+      ...(meal.tags || []),
+      ...getMealIngredients(meal),
+      ...meal.steps
+    ].join(' ').toLocaleLowerCase();
+    return searchableText.includes(query);
+  });
+  const visibleResults = results.slice(0, 12);
+  const people = document.getElementById('people').value;
+
+  recipeSearchCount.textContent = query
+    ? `${results.length}品${results.length > visibleResults.length ? '（上位12品を表示）' : ''}`
+    : `${meals.length}品`;
+  recipeSearchHint.textContent = query
+    ? `「${recipeSearchInput.value.trim()}」の検索結果 · 材料は${people}人分の目安です。`
+    : `材料の分量は、上の「人数」(${people}人)に合わせて表示されます。`;
+
+  if (!visibleResults.length) {
+    recipeSearchResults.innerHTML = '<p class="empty-message recipe-search-empty">レシピが見つかりません。別の料理名や食材で検索してください。</p>';
+    return;
+  }
+
+  recipeSearchResults.innerHTML = visibleResults.map((meal) => `
+    <article class="recipe-search-result">
+      <div class="recipe-search-result-heading">
+        <h3>${escapeHtml(meal.name)}</h3>
+        <span class="duration-pill">⏱ 約${getMealTime(meal)}分</span>
+      </div>
+      <p class="recipe-search-description">${escapeHtml(meal.desc)}</p>
+      <ul class="recipe-search-ingredients" aria-label="${escapeHtml(people)}人分の材料目安">
+        ${formatMealIngredients(meal, people).map((ingredient) => `<li>${escapeHtml(ingredient)}</li>`).join('')}
+      </ul>
+      <button type="button" class="load-bookmark-btn" data-search-meal="${encodeURIComponent(JSON.stringify(meal))}">作り方を見る</button>
+    </article>
+  `).join('');
+}
+
 const fridgeIngredientOptions = [
   '卵', '鶏肉', '豚肉', '鮭・魚', '豆腐', 'チーズ', 'ハム',
   'キャベツ', '玉ねぎ', 'じゃがいも', 'にんじん', 'トマト', 'きゅうり',
@@ -830,6 +878,7 @@ function renderFridgeResults() {
     return;
   }
 
+  const people = document.getElementById('people').value;
   const results = getAllMeals().map((meal) => {
     const ingredients = getMealIngredients(meal);
     const matched = selected.filter((item) => ingredients.some((ingredient) => ingredientMatches(ingredient, item))).length;
@@ -856,19 +905,32 @@ function renderFridgeResults() {
   fridgeResults.innerHTML = `
     <div class="fridge-results-heading">
       <h3>作れそうな献立</h3>
-      <span>${results.length}件</span>
+      <span>${results.length}件・${people}人分</span>
     </div>
     <div class="fridge-result-grid">
       ${results.map(({ meal, matched }) => `
         <article class="fridge-result-item">
-          <span class="fridge-match">${matched}/${selected.length}食材が一致</span>
-          <h3>${meal.name}</h3>
-          <p>${meal.desc}</p>
+          <span class="fridge-match">${escapeHtml(`${matched}/${selected.length}食材が一致`)}</span>
+          <h3>${escapeHtml(meal.name)}</h3>
+          <p>${escapeHtml(meal.desc)}</p>
+          <ul class="fridge-result-ingredients" aria-label="${escapeHtml(people)}人分の材料目安">
+            ${formatMealIngredients(meal, people).map((ingredient) => `<li>${escapeHtml(ingredient)}</li>`).join('')}
+          </ul>
           <button type="button" class="load-bookmark-btn" data-fridge-meal="${encodeURIComponent(JSON.stringify(meal))}">詳しく見る</button>
         </article>
       `).join('')}
     </div>
   `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }
 
 function getMealNutrition(meal) {
@@ -1772,6 +1834,20 @@ closeMealDetailButton.addEventListener('click', () => {
   resultPanel.focus();
 });
 
+recipeSearchInput.addEventListener('input', renderRecipeSearch);
+document.getElementById('people').addEventListener('input', renderRecipeSearch);
+recipeSearchResults.addEventListener('click', (event) => {
+  const mealButton = event.target.closest('[data-search-meal]');
+  if (!mealButton) return;
+
+  const meal = JSON.parse(decodeURIComponent(mealButton.dataset.searchMeal));
+  renderMealDetail(meal, 'レシピ検索', document.getElementById('people').value);
+  hideSubpages();
+  plannerView.hidden = true;
+  mealDetailPage.hidden = false;
+  closeMealDetailButton.focus();
+});
+
 openFridgeButton.addEventListener('click', () => {
   hideSubpages();
   renderFridgeIngredients();
@@ -1985,3 +2061,4 @@ initializeAuthFlow();
 renderBookmarks();
 renderHistory();
 renderHealthMaster();
+renderRecipeSearch();
