@@ -1,5 +1,9 @@
 # レシピタ
 
+## 公開URL
+
+[https://kai1-ai2515.github.io/Create-meal/](https://kai1-ai2515.github.io/Create-meal/)
+
 ## アップデートのお知らせ
 
 お知らせは [`announcements.js`](./announcements.js) の一覧で管理します。アプリを更新するときにタイトル・本文・公開日時・一意のIDを追加すると、ユーザーのお知らせページと未読バッジに反映されます。外部サービスや追加設定は必要ありません。

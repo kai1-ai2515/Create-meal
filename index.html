@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261010-registrants" />
+    <link rel="stylesheet" href="styles.css?v=20261010-app-polish" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -53,10 +53,18 @@
     <div class="app-shell" hidden>
       <header class="topbar">
         <div class="user-chip">
-          <span>無料アカウント</span>
-          <strong id="current-user-name">未ログイン</strong>
+          <span class="profile-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5.5 20c.6-3.5 3.1-5.5 6.5-5.5s5.9 2 6.5 5.5" />
+            </svg>
+          </span>
+          <span class="user-info">
+            <span class="user-label">無料アカウント</span>
+            <strong id="current-user-name">未ログイン</strong>
+          </span>
         </div>
-        <button id="mypage-btn" class="mypage-btn" type="button">マイページ</button>
+        <button id="mypage-btn" class="mypage-btn" type="button"><span aria-hidden="true">⚙</span> マイページ</button>
       </header>
 
       <header class="hero">
@@ -65,20 +73,25 @@
           <nav class="utility-nav" aria-label="便利機能">
             <button id="open-fridge-btn" class="utility-icon-btn" type="button" aria-label="冷蔵庫レスキューを開く" title="冷蔵庫レスキューを開く">
               <span aria-hidden="true">🧊</span>
+              <span class="utility-label" aria-hidden="true">冷蔵庫</span>
             </button>
             <button id="open-shopping-btn" class="utility-icon-btn" type="button" aria-label="買い物メモを開く" title="買い物メモを開く">
               <span aria-hidden="true">🛒</span>
+              <span class="utility-label" aria-hidden="true">買い物</span>
             </button>
             <button id="open-history-btn" class="utility-icon-btn" type="button" aria-label="献立履歴を開く" title="献立履歴を開く">
               <span aria-hidden="true">🕘</span>
+              <span class="utility-label" aria-hidden="true">履歴</span>
               <span id="history-count" class="utility-count">0</span>
             </button>
             <button id="open-announcements-btn" class="utility-icon-btn" type="button" aria-label="お知らせを開く" title="お知らせを開く">
               <span aria-hidden="true">📢</span>
+              <span class="utility-label" aria-hidden="true">お知らせ</span>
               <span id="announcement-count" class="utility-count" hidden>0</span>
             </button>
             <button id="open-bookmarks-btn" class="utility-icon-btn" type="button" aria-label="ブックマークを開く" title="ブックマークを開く">
               <span aria-hidden="true">🔖</span>
+              <span class="utility-label" aria-hidden="true">保存</span>
               <span id="bookmark-count" class="utility-count">0</span>
             </button>
           </nav>
@@ -112,7 +125,7 @@
             <button id="record-health-btn" class="health-record-btn" type="button" disabled>食べた献立を記録</button>
             <button id="manage-health-logs-btn" class="health-manage-btn" type="button">記録を管理</button>
           </div>
-          <details class="health-criteria" open>
+          <details class="health-criteria">
             <summary>点数の基準を見る</summary>
             <p>食べた献立を1日ごとに採点し、今月分の平均を四捨五入して表示します。配点は次のとおりです。</p>
             <dl class="health-criteria-list">
