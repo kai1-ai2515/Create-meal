@@ -109,6 +109,21 @@ function getSafeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+function getAuthErrorMessage(error, mode) {
+  const code = String(error?.code || '').toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  if (code.includes('email_send_rate_limit') || message.includes('email rate limit exceeded')) {
+    return 'メール送信の回数が上限に達しました。確認メールを何度も再送せず、受信箱と迷惑メールを確認してください。未着の場合は時間をおいて再度お試しください。頻繁に発生する場合は、管理者によるSupabaseのSMTP設定が必要です。';
+  }
+  if (code.includes('rate_limit') || message.includes('rate limit')) {
+    return '認証リクエストが短時間に集中しました。少し時間をおいてから再度お試しください。';
+  }
+  if (mode === 'signup' && (code.includes('already') || message.includes('already registered'))) {
+    return 'このメールアドレスは登録済みの可能性があります。「サインイン」に切り替えてログインするか、確認メールをご確認ください。';
+  }
+  return error?.message || '認証に失敗しました。';
+}
+
 function getUserDataKey(email) {
   return `${userDataStoragePrefix}${encodeURIComponent(getSafeEmail(email))}`;
 }
@@ -348,6 +363,7 @@ async function handleAuthSubmit(event) {
   }
 
   if (supabaseClient) {
+    authSubmitButton.disabled = true;
     try {
       const normalizedEmail = getSafeEmail(email);
       const request = authMode === 'signup'
@@ -361,7 +377,7 @@ async function handleAuthSubmit(event) {
         : await supabaseClient.auth.signInWithPassword({ email: normalizedEmail, password });
 
       if (request.error) {
-        authMessage.textContent = request.error.message || '認証に失敗しました。';
+        authMessage.textContent = getAuthErrorMessage(request.error, authMode);
         return;
       }
 
@@ -385,6 +401,8 @@ async function handleAuthSubmit(event) {
       return;
     } catch (error) {
       console.warn('Supabase認証に失敗したため、ローカル認証へ切り替えます。', error);
+    } finally {
+      authSubmitButton.disabled = false;
     }
   }
 
