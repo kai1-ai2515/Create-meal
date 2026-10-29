@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261029-announcement-fullscreen" />
+    <link rel="stylesheet" href="styles.css?v=20261029-announcement-heading-v2" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -515,15 +515,17 @@
       <section class="panel subpage announcement-admin-page" id="announcement-admin-page" hidden>
         <div class="subpage-header">
           <button id="close-announcement-admin-btn" class="back-btn" type="button">← 運用ダッシュボード</button>
-          <span class="developer-console-badge"><span aria-hidden="true">●</span> BROADCAST CENTER</span>
         </div>
         <div class="announcement-admin-heading">
           <div>
-            <p class="developer-console-kicker">GLOBAL MESSAGES / ALL USERS</p>
+            <p class="developer-console-kicker">全ユーザー向けのお知らせ</p>
             <h2>お知らせ配信</h2>
-            <p>ここから送信したメッセージは、全ユーザーのお知らせページに掲載されます。</p>
+            <p>配信したお知らせは、全ユーザーのお知らせページに掲載されます。</p>
           </div>
-          <div class="announcement-admin-status"><span aria-hidden="true"></span> <span id="announcement-admin-count">0</span> 件配信済み</div>
+          <div class="announcement-admin-status">
+            <span>配信済み</span>
+            <strong><span id="announcement-admin-count">0</span> 件</strong>
+          </div>
         </div>
         <form id="announcement-form" class="announcement-form">
           <label>

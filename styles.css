@@ -3192,24 +3192,26 @@ summary:focus-visible {
 }
 
 .announcement-admin-page .subpage-header {
-  flex-wrap: wrap;
-}
-
-.announcement-admin-page .subpage-header .developer-console-badge {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  width: 100%;
+  max-width: 900px;
+  justify-content: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dce7e1;
 }
 
 .announcement-admin-heading {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 18px;
-  margin: 22px auto;
-  padding: 18px;
-  border: 1px solid #dce7e1;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #f4f8f5, #fff);
+  align-items: center;
+  gap: 24px;
+  margin: 0 auto 24px;
+  padding: 28px;
+  border: 1px solid #d7e5dc;
+  border-left: 6px solid #4eae7a;
+  border-radius: 16px;
+  background: linear-gradient(115deg, #edf7f0, #fff);
+  box-shadow: 0 8px 24px rgba(37, 56, 47, 0.06);
 }
 
 .announcement-admin-heading > div:first-child {
@@ -3218,33 +3220,37 @@ summary:focus-visible {
 
 .announcement-admin-heading h2 {
   margin: 0;
+  color: #263b35;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 1.25;
 }
 
 .announcement-admin-heading > div:first-child > p:last-child {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.95rem;
   line-height: 1.6;
 }
 
 .announcement-admin-status {
-  white-space: nowrap;
-  padding: 9px 12px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 120px;
+  padding: 14px 18px;
   border: 1px solid #dcece3;
-  border-radius: 9px;
-  background: white;
+  border-radius: 12px;
+  background: #fff;
   color: #527261;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
-.announcement-admin-status > span:first-child {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 4px;
-  border-radius: 50%;
-  background: #4eae7a;
+.announcement-admin-status strong {
+  color: #2c7352;
+  font-family: "Nunito", sans-serif;
+  font-size: 1.35rem;
+  line-height: 1.2;
 }
 
 .announcement-form {
@@ -3372,7 +3378,7 @@ summary:focus-visible {
   }
 
   .announcement-admin-status {
-    align-self: flex-start;
+    justify-self: start;
   }
 
   .announcement-form {
