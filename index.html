@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261029-auth-recovery-fullscreen" />
+    <link rel="stylesheet" href="styles.css?v=20261029-auth-help-flow" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -38,7 +38,14 @@
             <button id="auth-submit-btn" type="submit">サインイン</button>
             <button id="auth-switch-btn" type="button" class="secondary-btn">アカウント登録</button>
           </div>
-          <button id="reset-password-btn" class="auth-reset-password-btn" type="button">パスワードを再設定</button>
+          <details class="auth-login-help">
+            <summary>ログインできない場合はこちら</summary>
+            <div class="auth-login-help-content">
+              <p>登録したメールアドレスを上の欄に入力してから、再設定メールを送信してください。届いたメールのリンクを開き、新しいパスワードを設定できます。</p>
+              <button id="reset-password-btn" class="auth-reset-password-btn" type="button">再設定メールを送る</button>
+              <p class="auth-login-help-note">以前のレシピタで登録し、まだ新しいアカウントを作っていない場合は、「アカウント登録」から同じメールアドレスで登録してください。</p>
+            </div>
+          </details>
 
           <div class="auth-dev-actions">
             <button id="dev-login-btn" type="button" class="dev-login-btn">開発者ログイン</button>
@@ -49,6 +56,10 @@
         </form>
 
         <form id="password-recovery-form" class="auth-form" hidden>
+          <div class="password-recovery-heading">
+            <h2>新しいパスワードを設定</h2>
+            <p>確認のため、同じパスワードを2回入力してください。</p>
+          </div>
           <label class="auth-field" for="recovery-password">新しいパスワード
             <input id="recovery-password" type="password" minlength="6" maxlength="32" autocomplete="new-password" required />
           </label>
@@ -612,6 +623,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-password-only-dev"></script>
-    <script src="script.js?v=20261029-auth-recovery"></script>
+    <script src="script.js?v=20261029-auth-help-flow"></script>
   </body>
 </html>

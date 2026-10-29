@@ -112,6 +112,7 @@ let currentUser = null;
 let vocCurrentView = 'inbox';
 let registeredUsers = [];
 let legacyPasswordCleanupFailed = false;
+let passwordRecoveryActive = false;
 
 function getSafeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -347,14 +348,18 @@ async function requestPasswordReset() {
   }
 
   resetPasswordButton.disabled = true;
+  authMessage.textContent = '再設定メールを送信しています...';
   try {
     const redirectTo = `${window.location.origin}${window.location.pathname}`;
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
-    authMessage.textContent = '再設定メールを送信しました。メール内のリンクから新しいパスワードを設定してください。届かない場合は迷惑メールとSupabaseのメール設定を確認してください。';
+    authMessage.textContent = '再設定メールを送信しました。メールのリンクを開き、新しいパスワードを設定してください。届かない場合は迷惑メールもご確認ください。';
   } catch (error) {
     console.error('パスワード再設定メールを送信できませんでした', error);
-    authMessage.textContent = getAuthErrorMessage(error, 'signin');
+    const message = getAuthErrorMessage(error, 'signin');
+    authMessage.textContent = /rate limit|上限|集中/i.test(message)
+      ? 'メールの送信回数が上限に達しました。しばらく待ってから再度お試しください。'
+      : '再設定メールを送信できませんでした。メールアドレスをご確認のうえ、時間をおいて再度お試しください。';
   } finally {
     resetPasswordButton.disabled = false;
   }
@@ -380,9 +385,18 @@ async function handlePasswordRecoverySubmit(event) {
   submitButton.disabled = true;
   passwordRecoveryMessage.textContent = 'パスワードを更新しています...';
   try {
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!sessionData.session?.user) {
+      passwordRecoveryMessage.textContent = '再設定リンクが無効または期限切れです。ログイン画面から新しいメールをお送りください。';
+      return;
+    }
+
     const { data, error } = await supabaseClient.auth.updateUser({ password });
     if (error) throw error;
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
     passwordRecoveryForm.reset();
+    passwordRecoveryActive = false;
     setCurrentUser({
       id: data.user.id,
       email: data.user.email,
@@ -402,12 +416,29 @@ async function handlePasswordRecoverySubmit(event) {
 }
 
 function showPasswordRecoveryView() {
+  passwordRecoveryActive = true;
   authView.hidden = false;
   appShell.hidden = true;
   authForm.hidden = true;
   passwordRecoveryForm.hidden = false;
   passwordRecoveryMessage.textContent = '新しいパスワードを入力してください。';
   recoveryPasswordInput.focus();
+}
+
+function handlePasswordRecoveryRedirect() {
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+  if (hashParams.has('error')) {
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    setAuthMode('signin');
+    showAuthView('再設定リンクが無効または期限切れです。登録メールアドレスを入力し、新しい再設定メールをお送りください。');
+    return true;
+  }
+
+  if (hashParams.get('type') === 'recovery') {
+    showPasswordRecoveryView();
+    return true;
+  }
+  return false;
 }
 
 function showAuthView(message = '') {
@@ -707,7 +738,10 @@ async function loadRegistrants() {
   } catch (error) {
     console.error('Supabase登録者情報を取得できませんでした', error);
     registrantsCount.textContent = '--';
-    registrantsMessage.textContent = error.message || '登録者情報を取得できませんでした。Edge Functionの更新状態を確認してください。';
+    const status = error.context?.status;
+    registrantsMessage.textContent = status === 401
+      ? '開発者認証を確認できませんでした。いったんログアウトし、開発者パスワードで再ログインしてください。'
+      : '登録者一覧の準備がまだ完了していません。管理者はGitHubのActionsから「登録者一覧の準備」を実行してください。';
     registrantsTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">登録者情報を読み込めませんでした。</td></tr>';
   }
 }
@@ -2068,6 +2102,8 @@ function addBookmark(plan) {
 }
 
 async function initializeAuthFlow() {
+  if (handlePasswordRecoveryRedirect() || passwordRecoveryActive) return;
+
   try {
     legacyPasswordCleanupFailed = !removeLegacyStoredPasswords();
   } catch (error) {
