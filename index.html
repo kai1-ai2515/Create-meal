@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261029-auth-help-flow" />
+    <link rel="stylesheet" href="styles.css?v=20261029-user-friendly-auth" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -39,11 +39,11 @@
             <button id="auth-switch-btn" type="button" class="secondary-btn">アカウント登録</button>
           </div>
           <details class="auth-login-help">
-            <summary>ログインできない場合はこちら</summary>
+            <summary>パスワードを忘れた方・ログインでお困りの方</summary>
             <div class="auth-login-help-content">
-              <p>登録したメールアドレスを上の欄に入力してから、再設定メールを送信してください。届いたメールのリンクを開き、新しいパスワードを設定できます。</p>
-              <button id="reset-password-btn" class="auth-reset-password-btn" type="button">再設定メールを送る</button>
-              <p class="auth-login-help-note">以前のレシピタで登録し、まだ新しいアカウントを作っていない場合は、「アカウント登録」から同じメールアドレスで登録してください。</p>
+              <p>パスワードを忘れた場合は、登録したメールアドレスを上に入力し、本人確認メールをお送りください。メールのリンクから新しいパスワードを設定できます。</p>
+              <button id="reset-password-btn" class="auth-reset-password-btn" type="button">本人確認メールを送る</button>
+              <p class="auth-login-help-note">以前のレシピタで登録した方は、同じメールアドレスで「アカウント登録」をお試しください。すでに登録済みと表示される場合は、上のサインインからお進みください。</p>
             </div>
           </details>
 
@@ -590,7 +590,7 @@
           </div>
           <span id="registrants-count" class="health-month" aria-live="polite">0件</span>
         </div>
-        <p class="registrants-notice">Supabase Authに登録されたアカウント情報を表示します。パスワードおよび認証トークンは取得・表示しません。</p>
+        <p class="registrants-notice">登録者のアカウント情報を表示します。パスワードやログイン用の情報は表示されません。</p>
         <div class="registrants-toolbar">
           <label class="registrants-search-label">
             <span class="visually-hidden">登録者を検索</span>
@@ -623,6 +623,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-password-only-dev"></script>
-    <script src="script.js?v=20261029-auth-help-flow"></script>
+    <script src="script.js?v=20261029-user-friendly-auth"></script>
   </body>
 </html>

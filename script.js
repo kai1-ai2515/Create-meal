@@ -123,27 +123,27 @@ function getAuthErrorMessage(error, mode) {
   const message = String(error?.message || '').toLowerCase();
   if (code.includes('email_send_rate_limit') || message.includes('email rate limit exceeded')) {
     return mode === 'signup'
-      ? '確認メールの送信上限に達しました。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにすると、メールなしで登録できます。設定後に再度お試しください。'
-      : '認証リクエストがメール送信上限に達しました。しばらく時間をおいてから再度お試しください。';
+      ? '登録確認メールを送信できませんでした。時間をおいて再度お試しください。'
+      : 'メールの送信回数が上限に達しました。しばらく待ってから再度お試しください。';
   }
   if (code.includes('rate_limit') || message.includes('rate limit')) {
-    return '認証リクエストが短時間に集中しました。少し時間をおいてから再度お試しください。';
+    return '短時間に操作が集中しています。しばらく待ってから再度お試しください。';
   }
   if (code.includes('email_not_confirmed') || message.includes('email not confirmed')) {
-    return 'このアカウントはメール確認が完了していません。管理者にSupabase DashboardのAuthentication → Usersから確認状態を更新してもらってください。';
+    return 'メールアドレスの確認がまだ完了していません。登録時に届いたメールをご確認ください。見つからない場合は、時間をおいて再度アカウント登録をお試しください。';
   }
   if (mode === 'signup' && (code.includes('already') || message.includes('already registered'))) {
-    return 'このメールアドレスは登録済みです。「サインイン」してください。パスワードを忘れた場合は「パスワードを再設定」をお試しください。';
+    return 'このメールアドレスはすでに登録されています。「サインイン」するか、「パスワードを忘れた方」から本人確認メールをお送りください。';
   }
   if (code.includes('invalid_credentials') || message.includes('invalid login credentials')) {
     const storedAccounts = getStoredAccounts();
     const hasLegacyAccount = Array.isArray(storedAccounts)
       && storedAccounts.some((account) => getSafeEmail(account.email) === getSafeEmail(authEmailInput.value));
     return hasLegacyAccount
-      ? 'このメールアドレスは以前このブラウザーだけに保存されていたアカウントの可能性があります。Supabase登録済みなら「パスワードを再設定」、旧ローカル登録のみなら「アカウント登録」から同じメールアドレスで登録し直してください。以前のパスワードは安全のため保存データから削除済みです。'
-      : 'メールアドレスまたはパスワードが違います。Supabaseアカウントをお持ちの場合は「パスワードを再設定」をお試しください。';
+      ? 'メールアドレスまたはパスワードをご確認ください。以前のレシピタで登録し、新しいアカウントをまだ作っていない場合は、「アカウント登録」から同じメールアドレスでお試しください。'
+      : 'メールアドレスまたはパスワードをご確認ください。入力に誤りがない場合は、「パスワードを忘れた方」から本人確認へお進みください。';
   }
-  return error?.message || '認証に失敗しました。';
+  return 'ログインできませんでした。入力内容と通信状態を確認して、もう一度お試しください。';
 }
 
 function getUserDataKey(email) {
@@ -329,39 +329,42 @@ function setAuthMode(nextMode) {
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
-    ? 'メールアドレス不要です。開発者専用パスワードを入力してください。'
+    ? '開発者専用パスワードを入力してください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
-      : 'メール確認なしで登録するには、Supabaseの「Confirm email」をオフにしてください。';
+      : 'メールアドレスと6文字以上のパスワードで登録できます。';
 }
 
 async function requestPasswordReset() {
   const email = getSafeEmail(authEmailInput.value);
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    authMessage.textContent = 'パスワード再設定のため、登録したメールアドレスを入力してください。';
+    authMessage.textContent = '登録したメールアドレスを入力してください。';
     authEmailInput.focus();
     return;
   }
   if (!supabaseClient) {
-    authMessage.textContent = 'パスワード再設定を利用できません。Supabaseの設定を確認してください。';
+    authMessage.textContent = 'ただいま本人確認を利用できません。時間をおいて再度お試しください。';
     return;
   }
 
   resetPasswordButton.disabled = true;
-  authMessage.textContent = '再設定メールを送信しています...';
+  resetPasswordButton.textContent = '送信しています...';
+  authMessage.textContent = '本人確認のメールを送信しています...';
   try {
     const redirectTo = `${window.location.origin}${window.location.pathname}`;
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
-    authMessage.textContent = '再設定メールを送信しました。メールのリンクを開き、新しいパスワードを設定してください。届かない場合は迷惑メールもご確認ください。';
+    authMessage.textContent = 'このメールアドレスが登録済みの場合、本人確認の案内をお送りします。メールのリンクから新しいパスワードを設定してください。届かない場合は迷惑メールをご確認ください。';
   } catch (error) {
-    console.error('パスワード再設定メールを送信できませんでした', error);
-    const message = getAuthErrorMessage(error, 'signin');
-    authMessage.textContent = /rate limit|上限|集中/i.test(message)
+    console.error('本人確認メールを送信できませんでした', error);
+    const code = String(error?.code || '').toLowerCase();
+    const message = String(error?.message || '').toLowerCase();
+    authMessage.textContent = code.includes('rate_limit') || message.includes('rate limit')
       ? 'メールの送信回数が上限に達しました。しばらく待ってから再度お試しください。'
-      : '再設定メールを送信できませんでした。メールアドレスをご確認のうえ、時間をおいて再度お試しください。';
+      : '本人確認メールを送信できませんでした。メールアドレスをご確認のうえ、時間をおいて再度お試しください。';
   } finally {
     resetPasswordButton.disabled = false;
+    resetPasswordButton.textContent = '本人確認メールを送る';
   }
 }
 
@@ -377,7 +380,7 @@ async function handlePasswordRecoverySubmit(event) {
     return;
   }
   if (!supabaseClient) {
-    passwordRecoveryMessage.textContent = 'パスワードを更新できません。Supabaseの設定を確認してください。';
+    passwordRecoveryMessage.textContent = 'ただいまパスワードを更新できません。時間をおいて再度お試しください。';
     return;
   }
 
@@ -388,7 +391,7 @@ async function handlePasswordRecoverySubmit(event) {
     const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError) throw sessionError;
     if (!sessionData.session?.user) {
-      passwordRecoveryMessage.textContent = '再設定リンクが無効または期限切れです。ログイン画面から新しいメールをお送りください。';
+      passwordRecoveryMessage.textContent = '再設定リンクが無効または期限切れです。ログイン画面からもう一度お手続きください。';
       return;
     }
 
@@ -430,7 +433,7 @@ function handlePasswordRecoveryRedirect() {
   if (hashParams.has('error')) {
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
     setAuthMode('signin');
-    showAuthView('再設定リンクが無効または期限切れです。登録メールアドレスを入力し、新しい再設定メールをお送りください。');
+    showAuthView('本人確認リンクが無効または期限切れです。「パスワードを忘れた方」からもう一度お手続きください。');
     return true;
   }
 
@@ -484,7 +487,7 @@ async function handleAuthSubmit(event) {
   const email = authEmailInput.value.trim();
   const password = authMode === 'developer'
     ? authPasswordInput.value
-    : authPasswordInput.value.trim();
+    : authPasswordInput.value;
 
   if (authMode === 'developer') {
     if (!password) {
@@ -496,7 +499,7 @@ async function handleAuthSubmit(event) {
       return;
     }
     if (!supabaseClient) {
-      authMessage.textContent = '開発者ログインにはSupabaseの設定が必要です。';
+      authMessage.textContent = '開発者ログインを現在利用できません。管理者にお問い合わせください。';
       return;
     }
 
@@ -537,7 +540,7 @@ async function handleAuthSubmit(event) {
   }
 
   if (!supabaseClient) {
-    authMessage.textContent = '安全なログイン機能を利用できません。Supabaseの設定を確認してください。';
+    authMessage.textContent = 'ただいまログインを利用できません。時間をおいて再度お試しください。';
     return;
   }
 
@@ -559,12 +562,12 @@ async function handleAuthSubmit(event) {
     const authSession = request.data?.session;
     const authUser = authSession?.user || request.data?.user;
     if (authMode === 'signup' && authUser && !authSession) {
-      authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
+      authMessage.textContent = '登録確認が必要です。登録時に届いたメールをご確認ください。メールが見つからない場合は、時間をおいて再度お試しください。';
       return;
     }
 
     if (!authUser || !authSession) {
-      authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
+      authMessage.textContent = '登録を完了できませんでした。通信状態をご確認のうえ、時間をおいて再度お試しください。';
       return;
     }
 
@@ -576,7 +579,7 @@ async function handleAuthSubmit(event) {
     });
   } catch (error) {
     console.error('Supabase認証に失敗しました', error);
-    authMessage.textContent = error?.message || '認証サーバーに接続できませんでした。通信状態を確認して、もう一度お試しください。';
+    authMessage.textContent = getAuthErrorMessage(error, authMode);
   } finally {
     authSubmitButton.disabled = false;
   }
@@ -715,11 +718,11 @@ async function loadRegistrants() {
     return;
   }
   if (!supabaseClient) {
-    registrantsMessage.textContent = '登録者情報を取得できません。Supabaseの設定を確認してください。';
+    registrantsMessage.textContent = '登録者情報を取得できません。管理者にお知らせください。';
     return;
   }
 
-  registrantsMessage.textContent = 'Supabase Authから登録者情報を読み込んでいます...';
+  registrantsMessage.textContent = '登録者情報を読み込んでいます...';
   registrantsTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">読み込み中...</td></tr>';
   try {
     const developerPassword = sessionStorage.getItem(developerPasswordStorageKey);
@@ -736,7 +739,7 @@ async function loadRegistrants() {
     registeredUsers = data.users;
     renderRegistrants();
   } catch (error) {
-    console.error('Supabase登録者情報を取得できませんでした', error);
+    console.error('登録者情報を取得できませんでした', error);
     registrantsCount.textContent = '--';
     const status = error.context?.status;
     registrantsMessage.textContent = status === 401
@@ -858,7 +861,7 @@ async function handleMypageSubmit(event) {
   }
 
   if (!supabaseClient) {
-    mypageMessage.textContent = 'アカウント情報を更新できません。Supabaseの設定を確認してください。';
+    mypageMessage.textContent = 'ただいまアカウント情報を更新できません。時間をおいて再度お試しください。';
     return;
   }
 
@@ -979,7 +982,7 @@ function handleDeveloperLogin() {
   authPasswordInput.value = '';
   setAuthMode('developer');
   authPasswordInput.focus();
-  if (!supabaseClient) authMessage.textContent = '開発者ログインはSupabase設定後に利用できます。';
+  if (!supabaseClient) authMessage.textContent = '開発者ログインを現在利用できません。管理者にお問い合わせください。';
 }
 
 function returnToUserLogin() {
@@ -2138,8 +2141,8 @@ async function initializeAuthFlow() {
     clearStoredCurrentUser();
     setAuthMode('signin');
     showAuthView(legacyPasswordCleanupFailed
-      ? '以前のローカルパスワードを削除できませんでした。安全なログインにはSupabaseの設定が必要です。'
-      : '安全なログイン機能を利用できません。Supabaseの設定を確認してください。');
+      ? '以前のアカウント情報を安全に整理できませんでした。サポートへお問い合わせください。'
+      : 'ただいまログインを利用できません。時間をおいて再度お試しください。');
     return;
   }
 
@@ -2164,10 +2167,10 @@ async function initializeAuthFlow() {
       return;
     }
   } catch (error) {
-    console.error('Supabaseセッションを復元できませんでした', error);
+    console.error('ログイン状態を復元できませんでした', error);
     clearStoredCurrentUser();
     setAuthMode('signin');
-    showAuthView('ログイン状態を確認できませんでした。通信状態を確認して、もう一度サインインしてください。');
+    showAuthView('ログイン状態を確認できませんでした。通信状態を確認して、もう一度お試しください。');
     return;
   }
 
