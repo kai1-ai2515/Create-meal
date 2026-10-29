@@ -3173,6 +3173,19 @@ summary:focus-visible {
 }
 
 .announcement-admin-page {
+  z-index: 20;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(135deg, #f4f8f5, #fff);
+}
+
+.announcement-admin-page > .announcement-admin-heading,
+.announcement-admin-page > .announcement-form,
+.announcement-admin-page > .announcement-history-header,
+.announcement-admin-page > .announcements-list {
+  width: 100%;
   max-width: 900px;
   margin-right: auto;
   margin-left: auto;
