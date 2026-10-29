@@ -351,7 +351,13 @@ async function handleAuthSubmit(event) {
     try {
       const normalizedEmail = getSafeEmail(email);
       const request = authMode === 'signup'
-        ? await supabaseClient.auth.signUp({ email: normalizedEmail, password })
+        ? await supabaseClient.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+          }
+        })
         : await supabaseClient.auth.signInWithPassword({ email: normalizedEmail, password });
 
       if (request.error) {
@@ -359,9 +365,14 @@ async function handleAuthSubmit(event) {
         return;
       }
 
-      const authUser = request.data?.user || request.data?.session?.user;
-      if (!authUser) {
-        authMessage.textContent = '認証情報を確認できませんでした。';
+      const authSession = request.data?.session;
+      const authUser = authSession?.user || request.data?.user;
+      if (authMode === 'signup' && authUser && !authSession) {
+        authMessage.textContent = `${normalizedEmail} に登録確認メールを送信しました。メール内のリンクを開いてからサインインしてください。`;
+        return;
+      }
+      if (!authUser || !authSession) {
+        authMessage.textContent = 'ログイン情報を確認できませんでした。メールアドレスとパスワードを確認し、確認メールが届いている場合は先に確認を完了してください。';
         return;
       }
 
