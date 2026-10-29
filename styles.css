@@ -3178,6 +3178,8 @@ summary:focus-visible {
   max-width: none;
   min-height: 100vh;
   margin: 0;
+  padding-right: max(20px, calc((100vw - 1160px) / 2));
+  padding-left: max(20px, calc((100vw - 1160px) / 2));
   background: linear-gradient(135deg, #f4f8f5, #fff);
 }
 
@@ -3186,14 +3188,14 @@ summary:focus-visible {
 .announcement-admin-page > .announcement-history-header,
 .announcement-admin-page > .announcements-list {
   width: 100%;
-  max-width: 900px;
+  max-width: 1160px;
   margin-right: auto;
   margin-left: auto;
 }
 
 .announcement-admin-page .subpage-header {
   width: 100%;
-  max-width: 900px;
+  max-width: 1160px;
   justify-content: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
@@ -3216,6 +3218,7 @@ summary:focus-visible {
 
 .announcement-admin-heading > div:first-child {
   min-width: 0;
+  text-align: left;
 }
 
 .announcement-admin-heading h2 {
@@ -3265,10 +3268,12 @@ summary:focus-visible {
 
 .announcement-form label {
   display: grid;
+  justify-items: stretch;
   gap: 7px;
   color: #46564d;
   font-size: 0.88rem;
   font-weight: 700;
+  text-align: left;
 }
 
 .announcement-form input,
@@ -3279,6 +3284,7 @@ summary:focus-visible {
   border-radius: 10px;
   background: #fbfcfb;
   color: var(--text);
+  text-align: left;
 }
 
 .announcement-form textarea {
