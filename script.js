@@ -163,6 +163,31 @@ function saveStoredAccounts(accounts) {
   localStorage.setItem(localAccountsStorageKey, JSON.stringify(accounts));
 }
 
+function removeLegacyStoredPasswords() {
+  const rawAccounts = localStorage.getItem(localAccountsStorageKey);
+  if (!rawAccounts) return;
+
+  const accounts = JSON.parse(rawAccounts);
+  if (!Array.isArray(accounts)) {
+    throw new Error('以前のブラウザー保存アカウントを確認できません。ブラウザーの保存データを確認してください。');
+  }
+
+  let changed = false;
+  const sanitizedAccounts = accounts.map((account) => {
+    if (!account || typeof account !== 'object' || !Object.prototype.hasOwnProperty.call(account, 'password')) {
+      return account;
+    }
+
+    const safeAccount = { ...account };
+    delete safeAccount.password;
+    changed = true;
+    return safeAccount;
+  });
+
+  if (changed) saveStoredAccounts(sanitizedAccounts);
+  return changed;
+}
+
 function getStoredCurrentUser() {
   try {
     return JSON.parse(localStorage.getItem(localCurrentUserStorageKey));
@@ -297,9 +322,8 @@ function completeSuccessfulLogin(user) {
   setStoredCurrentUser(user);
   authForm.reset();
   authPasswordInput.value = '';
+  showPlanner();
   showAppView();
-  if (currentUser.role === 'developer') openVocAdminPage();
-  else openMypage();
 }
 
 function renderUserData() {
@@ -313,9 +337,7 @@ async function handleAuthSubmit(event) {
   event.preventDefault();
 
   const email = authEmailInput.value.trim();
-  const password = authMode === 'developer'
-    ? authPasswordInput.value
-    : authPasswordInput.value.trim();
+  const password = authPasswordInput.value;
 
   if (authMode === 'developer') {
     if (!password) {
@@ -367,90 +389,50 @@ async function handleAuthSubmit(event) {
     return;
   }
 
-  if (supabaseClient) {
-    authSubmitButton.disabled = true;
-    try {
-      const normalizedEmail = getSafeEmail(email);
-      const request = authMode === 'signup'
-        ? await supabaseClient.auth.signUp({
-          email: normalizedEmail,
-          password
-        })
-        : await supabaseClient.auth.signInWithPassword({ email: normalizedEmail, password });
-
-      if (request.error) {
-        authMessage.textContent = getAuthErrorMessage(request.error, authMode);
-        return;
-      }
-
-      const authSession = request.data?.session;
-      const authUser = authSession?.user || request.data?.user;
-      if (authMode === 'signup' && authUser && !authSession) {
-        authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
-        return;
-      }
-
-      if (!authUser || !authSession) {
-        authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
-        return;
-      }
-
-      completeSuccessfulLogin({
-        id: authUser.id,
-        email: authUser.email,
-        createdAt: authUser.created_at,
-        role: 'user'
-      });
-      return;
-    } catch (error) {
-      console.error('Supabase認証に失敗しました', error);
-      authMessage.textContent = error?.message || '認証サーバーに接続できませんでした。通信状態を確認して、もう一度お試しください。';
-      return;
-    } finally {
-      authSubmitButton.disabled = false;
-    }
+  if (!supabaseClient) {
+    authMessage.textContent = '安全なログイン機能を利用できません。Supabaseの設定を確認してください。';
+    return;
   }
 
-  const normalizedEmail = getSafeEmail(email);
-  const accounts = getStoredAccounts();
+  authSubmitButton.disabled = true;
+  try {
+    const normalizedEmail = getSafeEmail(email);
+    const request = authMode === 'signup'
+      ? await supabaseClient.auth.signUp({
+        email: normalizedEmail,
+        password
+      })
+      : await supabaseClient.auth.signInWithPassword({ email: normalizedEmail, password });
 
-  if (authMode === 'signup') {
-    if (accounts.some((account) => getSafeEmail(account.email) === normalizedEmail)) {
-      authMessage.textContent = 'このメールアドレスはすでに登録されています。';
+    if (request.error) {
+      authMessage.textContent = getAuthErrorMessage(request.error, authMode);
       return;
     }
 
-    const newAccount = {
-      id: `local-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      email: normalizedEmail,
-      password,
-      createdAt: new Date().toISOString(),
-      role: 'user'
-    };
+    const authSession = request.data?.session;
+    const authUser = authSession?.user || request.data?.user;
+    if (authMode === 'signup' && authUser && !authSession) {
+      authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
+      return;
+    }
 
-    accounts.push(newAccount);
-    saveStoredAccounts(accounts);
+    if (!authUser || !authSession) {
+      authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
+      return;
+    }
+
     completeSuccessfulLogin({
-      id: newAccount.id,
-      email: newAccount.email,
-      createdAt: newAccount.createdAt,
+      id: authUser.id,
+      email: authUser.email,
+      createdAt: authUser.created_at,
       role: 'user'
     });
-    return;
+  } catch (error) {
+    console.error('Supabase認証に失敗しました', error);
+    authMessage.textContent = error?.message || '認証サーバーに接続できませんでした。通信状態を確認して、もう一度お試しください。';
+  } finally {
+    authSubmitButton.disabled = false;
   }
-
-  const matchingAccount = accounts.find((account) => getSafeEmail(account.email) === normalizedEmail && account.password === password);
-  if (!matchingAccount) {
-    authMessage.textContent = 'メールアドレスまたはパスワードが違います。';
-    return;
-  }
-
-  completeSuccessfulLogin({
-    id: matchingAccount.id,
-    email: matchingAccount.email,
-    createdAt: matchingAccount.createdAt,
-    role: matchingAccount.role || 'user'
-  });
 }
 
 async function handleLogout() {
@@ -681,7 +663,7 @@ async function handleMypageSubmit(event) {
   }
 
   const nextEmail = mypageEmailInput.value.trim();
-  const currentPassword = mypageCurrentPasswordInput.value.trim();
+  const currentPassword = mypageCurrentPasswordInput.value;
   const newPassword = mypageNewPasswordInput.value.trim();
   const passwordConfirm = mypageNewPasswordConfirmInput.value.trim();
 
@@ -692,15 +674,6 @@ async function handleMypageSubmit(event) {
 
   if (!currentPassword) {
     mypageMessage.textContent = '現在のパスワードを入力してください。';
-    return;
-  }
-
-  const accounts = getStoredAccounts();
-  const accountIndex = accounts.findIndex((account) => account.id === user.id);
-  const existingAccount = accountIndex >= 0 ? accounts[accountIndex] : null;
-
-  if (!existingAccount || existingAccount.password !== currentPassword) {
-    mypageMessage.textContent = '現在のパスワードが違います。';
     return;
   }
 
@@ -715,38 +688,55 @@ async function handleMypageSubmit(event) {
   }
 
   const normalizedNextEmail = getSafeEmail(nextEmail);
-  const duplicateAccount = accounts.find((account) => account.id !== user.id && getSafeEmail(account.email) === normalizedNextEmail);
-  if (duplicateAccount) {
-    mypageMessage.textContent = 'このメールアドレスは既に使用されています。';
+  const emailChanged = normalizedNextEmail !== getSafeEmail(user.email);
+  const updates = {};
+  if (emailChanged) updates.email = normalizedNextEmail;
+  if (newPassword) updates.password = newPassword;
+  if (!Object.keys(updates).length) {
+    mypageMessage.textContent = '変更するメールアドレスか新しいパスワードを入力してください。';
     return;
   }
 
-  const originalUserData = loadUserData();
-  if (normalizedNextEmail !== getSafeEmail(user.email)) {
-    localStorage.removeItem(getUserDataKey(user.email));
-    localStorage.setItem(getUserDataKey(normalizedNextEmail), JSON.stringify(originalUserData));
+  if (!supabaseClient) {
+    mypageMessage.textContent = 'アカウント情報を更新できません。Supabaseの設定を確認してください。';
+    return;
   }
 
-  const updatedAccount = {
-    ...existingAccount,
-    email: normalizedNextEmail,
-    password: newPassword || existingAccount.password
-  };
-  accounts[accountIndex] = updatedAccount;
-  saveStoredAccounts(accounts);
+  try {
+    const { data: verification, error: verificationError } = await supabaseClient.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword
+    });
+    if (verificationError || verification.user?.id !== user.id) {
+      mypageMessage.textContent = verificationError
+        ? getAuthErrorMessage(verificationError, 'signin')
+        : '現在のパスワードが違います。';
+      return;
+    }
 
-  const updatedUser = {
-    id: updatedAccount.id,
-    email: updatedAccount.email,
-    createdAt: updatedAccount.createdAt,
-    role: updatedAccount.role || 'user'
-  };
+    const { data, error } = await supabaseClient.auth.updateUser(updates);
+    if (error) {
+      mypageMessage.textContent = getAuthErrorMessage(error, 'signin');
+      return;
+    }
 
-  setCurrentUser(updatedUser);
-  setStoredCurrentUser(updatedUser);
-  syncCurrentUserBadge();
-  renderMypageProfile();
-  mypageMessage.textContent = 'アカウント情報を更新しました。';
+    const updatedUser = {
+      id: user.id,
+      email: data.user?.email || user.email,
+      createdAt: data.user?.created_at || user.createdAt,
+      role: user.role
+    };
+    setCurrentUser(updatedUser);
+    setStoredCurrentUser(updatedUser);
+    syncCurrentUserBadge();
+    renderMypageProfile();
+    mypageMessage.textContent = emailChanged && updatedUser.email === user.email
+      ? 'メールアドレス変更の確認メールを送信しました。メール内のリンクから変更を完了してください。'
+      : 'アカウント情報を更新しました。';
+  } catch (error) {
+    console.error('アカウント情報を更新できませんでした', error);
+    mypageMessage.textContent = error?.message || 'アカウント情報を更新できませんでした。時間をおいて再度お試しください。';
+  }
 }
 
 function exportUserData() {
@@ -808,35 +798,7 @@ async function handleDeleteAccount() {
     return;
   }
 
-  const password = deleteAccountPasswordInput.value.trim();
-  if (!password) {
-    mypageMessage.textContent = '削除確認のため、現在のパスワードを入力してください。';
-    return;
-  }
-
-  const accounts = getStoredAccounts();
-  const accountIndex = accounts.findIndex((account) => account.id === user.id);
-  if (accountIndex < 0 || accounts[accountIndex].password !== password) {
-    mypageMessage.textContent = '現在のパスワードが違います。';
-    return;
-  }
-
-  const confirmed = window.confirm('本当にアカウントを削除しますか？ 保存データと送信済みVOCもすべて削除されます。');
-  if (!confirmed) {
-    return;
-  }
-
-  accounts.splice(accountIndex, 1);
-  saveStoredAccounts(accounts);
-
-  localStorage.removeItem(getUserDataKey(user.email));
-  clearStoredCurrentUser();
-  clearCurrentUser();
-  deleteAccountPasswordInput.value = '';
-  authForm.reset();
-  mypageForm.reset();
-  setAuthMode('signin');
-  showAuthView('アカウントを削除しました。もう一度登録してご利用ください。');
+  mypageMessage.textContent = '安全にアカウントを削除するサーバー機能が未設定のため、この画面からは削除できません。サポートへお問い合わせください。';
 }
 
 function togglePasswordVisibility(event) {
@@ -1980,6 +1942,16 @@ function addBookmark(plan) {
 }
 
 async function initializeAuthFlow() {
+  let removedLegacyPasswords = false;
+  try {
+    removedLegacyPasswords = removeLegacyStoredPasswords();
+  } catch (error) {
+    console.error('以前のブラウザー保存パスワードを削除できませんでした', error);
+    setAuthMode('signin');
+    showAuthView('以前のブラウザー保存パスワードを削除できません。ブラウザーの保存領域を確認してください。');
+    return;
+  }
+
   const savedUser = getStoredCurrentUser();
   if (savedUser?.role === 'developer') {
     setAuthMode('developer');
@@ -2003,52 +1975,48 @@ async function initializeAuthFlow() {
     return;
   }
 
-  if (supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient.auth.getSession();
-      if (error) throw error;
-      if (data.session?.user) {
-        const authUser = data.session.user;
-        if (authUser.app_metadata?.role === 'developer') {
-          await supabaseClient.auth.signOut();
-          setAuthMode('developer');
-          showAuthView('開発者ログインはメールアドレス不要です。専用パスワードでログインしてください。');
-          return;
-        }
-        completeSuccessfulLogin({
-          id: authUser.id,
-          email: authUser.email,
-          createdAt: authUser.created_at,
-          role: 'user'
-        });
-        return;
-      }
-    } catch (error) {
-      console.warn('Supabaseセッションの復元に失敗したため、ローカルセッションを確認します。', error);
-    }
-  }
-
-  if (!savedUser) {
-    setAuthMode('signin');
-    showAuthView('メールアドレスでサインインしてください。');
-    return;
-  }
-
-  const accounts = getStoredAccounts();
-  const account = accounts.find((item) => item.id === savedUser.id || getSafeEmail(item.email) === getSafeEmail(savedUser.email));
-  if (!account) {
+  if (!supabaseClient) {
     clearStoredCurrentUser();
     setAuthMode('signin');
-    showAuthView('ログイン状態を確認できませんでした。もう一度サインインしてください。');
+    showAuthView(removedLegacyPasswords
+      ? '以前のブラウザー保存パスワードを削除しました。安全なログインにはSupabaseの設定が必要です。'
+      : '安全なログイン機能を利用できません。Supabaseの設定を確認してください。');
     return;
   }
 
-  completeSuccessfulLogin({
-    id: account.id,
-    email: account.email,
-    createdAt: account.createdAt,
-    role: account.role || 'user'
-  });
+  try {
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+    if (data.session?.user) {
+      const authUser = data.session.user;
+      if (authUser.app_metadata?.role === 'developer') {
+        const { error: signOutError } = await supabaseClient.auth.signOut();
+        if (signOutError) throw signOutError;
+        setAuthMode('developer');
+        showAuthView('開発者ログインはメールアドレス不要です。専用パスワードでログインしてください。');
+        return;
+      }
+      completeSuccessfulLogin({
+        id: authUser.id,
+        email: authUser.email,
+        createdAt: authUser.created_at,
+        role: 'user'
+      });
+      return;
+    }
+  } catch (error) {
+    console.error('Supabaseセッションを復元できませんでした', error);
+    clearStoredCurrentUser();
+    setAuthMode('signin');
+    showAuthView('ログイン状態を確認できませんでした。通信状態を確認して、もう一度サインインしてください。');
+    return;
+  }
+
+  clearStoredCurrentUser();
+  setAuthMode('signin');
+  showAuthView(removedLegacyPasswords
+    ? '以前のブラウザー保存パスワードを削除しました。Supabaseのアカウントでサインインしてください。'
+    : 'メールアドレスでサインインしてください。');
 }
 
 function hideSubpages() {
