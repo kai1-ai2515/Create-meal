@@ -113,13 +113,18 @@ function getAuthErrorMessage(error, mode) {
   const code = String(error?.code || '').toLowerCase();
   const message = String(error?.message || '').toLowerCase();
   if (code.includes('email_send_rate_limit') || message.includes('email rate limit exceeded')) {
-    return 'メール送信の回数が上限に達しました。確認メールを何度も再送せず、受信箱と迷惑メールを確認してください。未着の場合は時間をおいて再度お試しください。頻繁に発生する場合は、管理者によるSupabaseのSMTP設定が必要です。';
+    return mode === 'signup'
+      ? '確認メールの送信上限に達しました。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにすると、メールなしで登録できます。設定後に再度お試しください。'
+      : '認証リクエストがメール送信上限に達しました。しばらく時間をおいてから再度お試しください。';
   }
   if (code.includes('rate_limit') || message.includes('rate limit')) {
     return '認証リクエストが短時間に集中しました。少し時間をおいてから再度お試しください。';
   }
+  if (code.includes('email_not_confirmed') || message.includes('email not confirmed')) {
+    return 'このアカウントはメール確認が完了していません。管理者にSupabase DashboardのAuthentication → Usersから確認状態を更新してもらってください。';
+  }
   if (mode === 'signup' && (code.includes('already') || message.includes('already registered'))) {
-    return 'このメールアドレスは登録済みの可能性があります。「サインイン」に切り替えてログインするか、確認メールをご確認ください。';
+    return 'このメールアドレスは登録済みです。「サインイン」に切り替えてログインしてください。';
   }
   return error?.message || '認証に失敗しました。';
 }
@@ -267,7 +272,7 @@ function setAuthMode(nextMode) {
     ? 'メールアドレス不要です。開発者専用パスワードを入力してください。'
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
-      : '新しいメールアドレスでアカウントを作成します。';
+      : 'メール確認なしで登録するには、Supabaseの「Confirm email」をオフにしてください。';
 }
 
 function showAuthView(message = '') {
@@ -369,10 +374,7 @@ async function handleAuthSubmit(event) {
       const request = authMode === 'signup'
         ? await supabaseClient.auth.signUp({
           email: normalizedEmail,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}${window.location.pathname}`
-          }
+          password
         })
         : await supabaseClient.auth.signInWithPassword({ email: normalizedEmail, password });
 
@@ -384,11 +386,12 @@ async function handleAuthSubmit(event) {
       const authSession = request.data?.session;
       const authUser = authSession?.user || request.data?.user;
       if (authMode === 'signup' && authUser && !authSession) {
-        authMessage.textContent = `${normalizedEmail} に登録確認メールを送信しました。メール内のリンクを開いてからサインインしてください。`;
+        authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
         return;
       }
+
       if (!authUser || !authSession) {
-        authMessage.textContent = 'ログイン情報を確認できませんでした。メールアドレスとパスワードを確認し、確認メールが届いている場合は先に確認を完了してください。';
+        authMessage.textContent = '登録確認メールが必要な設定になっています。管理者がSupabase DashboardのAuthentication → Providers → Emailで「Confirm email」をオフにしてから、もう一度登録してください。';
         return;
       }
 
@@ -400,7 +403,9 @@ async function handleAuthSubmit(event) {
       });
       return;
     } catch (error) {
-      console.warn('Supabase認証に失敗したため、ローカル認証へ切り替えます。', error);
+      console.error('Supabase認証に失敗しました', error);
+      authMessage.textContent = error?.message || '認証サーバーに接続できませんでした。通信状態を確認して、もう一度お試しください。';
+      return;
     } finally {
       authSubmitButton.disabled = false;
     }
