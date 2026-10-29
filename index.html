@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261029-announcement-web-layout" />
+    <link rel="stylesheet" href="styles.css?v=20261029-auth-recovery-fullscreen" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -38,6 +38,7 @@
             <button id="auth-submit-btn" type="submit">サインイン</button>
             <button id="auth-switch-btn" type="button" class="secondary-btn">アカウント登録</button>
           </div>
+          <button id="reset-password-btn" class="auth-reset-password-btn" type="button">パスワードを再設定</button>
 
           <div class="auth-dev-actions">
             <button id="dev-login-btn" type="button" class="dev-login-btn">開発者ログイン</button>
@@ -47,10 +48,22 @@
           <p id="auth-message" class="auth-message" aria-live="polite"></p>
         </form>
 
+        <form id="password-recovery-form" class="auth-form" hidden>
+          <label class="auth-field" for="recovery-password">新しいパスワード
+            <input id="recovery-password" type="password" minlength="6" maxlength="32" autocomplete="new-password" required />
+          </label>
+          <label class="auth-field" for="recovery-password-confirm">新しいパスワード（確認）
+            <input id="recovery-password-confirm" type="password" minlength="6" maxlength="32" autocomplete="new-password" required />
+          </label>
+          <button id="save-recovery-password-btn" type="submit">パスワードを更新</button>
+          <p id="password-recovery-message" class="auth-message" aria-live="polite"></p>
+        </form>
+
       </div>
     </div>
 
     <div class="app-shell" hidden>
+      <p id="app-security-notice" class="app-security-notice" role="status" hidden></p>
       <header class="topbar">
         <div class="user-chip">
           <span class="profile-avatar" aria-hidden="true">
@@ -566,7 +579,7 @@
           </div>
           <span id="registrants-count" class="health-month" aria-live="polite">0件</span>
         </div>
-        <p class="registrants-notice">このブラウザに保存されたローカル登録のみ表示します。Supabaseに登録されたアカウントはここには表示されません。</p>
+        <p class="registrants-notice">Supabase Authに登録されたアカウント情報を表示します。パスワードおよび認証トークンは取得・表示しません。</p>
         <div class="registrants-toolbar">
           <label class="registrants-search-label">
             <span class="visually-hidden">登録者を検索</span>
@@ -582,11 +595,12 @@
               <tr>
                 <th scope="col">メールアドレス</th>
                 <th scope="col">登録日時</th>
-                <th scope="col">操作</th>
+                <th scope="col">最終ログイン</th>
+                <th scope="col">登録情報</th>
               </tr>
             </thead>
             <tbody id="registrants-table-body">
-              <tr><td colspan="3" class="empty-message">読み込み中...</td></tr>
+              <tr><td colspan="4" class="empty-message">読み込み中...</td></tr>
             </tbody>
           </table>
         </div>
@@ -598,6 +612,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-password-only-dev"></script>
-    <script src="script.js?v=20261029-auth-no-email-confirmation"></script>
+    <script src="script.js?v=20261029-auth-recovery"></script>
   </body>
 </html>

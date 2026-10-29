@@ -61,10 +61,16 @@ const authPasswordInput = document.getElementById('auth-password');
 const authPasswordLabel = document.getElementById('auth-password-label');
 const authSubmitButton = document.getElementById('auth-submit-btn');
 const authSwitchButton = document.getElementById('auth-switch-btn');
+const resetPasswordButton = document.getElementById('reset-password-btn');
+const passwordRecoveryForm = document.getElementById('password-recovery-form');
+const recoveryPasswordInput = document.getElementById('recovery-password');
+const recoveryPasswordConfirmInput = document.getElementById('recovery-password-confirm');
+const passwordRecoveryMessage = document.getElementById('password-recovery-message');
 const devLoginButton = document.getElementById('dev-login-btn');
 const authBackButton = document.getElementById('auth-back-btn');
 const emailField = document.getElementById('email-field');
 const authMessage = document.getElementById('auth-message');
+const appSecurityNotice = document.getElementById('app-security-notice');
 const currentUserName = document.getElementById('current-user-name');
 const mypageButton = document.getElementById('mypage-btn');
 const mypagePanel = document.getElementById('mypage-panel');
@@ -104,6 +110,8 @@ const supabaseClient = window.mealSupabaseClient || null;
 let authMode = 'signin';
 let currentUser = null;
 let vocCurrentView = 'inbox';
+let registeredUsers = [];
+let legacyPasswordCleanupFailed = false;
 
 function getSafeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -124,7 +132,15 @@ function getAuthErrorMessage(error, mode) {
     return 'このアカウントはメール確認が完了していません。管理者にSupabase DashboardのAuthentication → Usersから確認状態を更新してもらってください。';
   }
   if (mode === 'signup' && (code.includes('already') || message.includes('already registered'))) {
-    return 'このメールアドレスは登録済みです。「サインイン」に切り替えてログインしてください。';
+    return 'このメールアドレスは登録済みです。「サインイン」してください。パスワードを忘れた場合は「パスワードを再設定」をお試しください。';
+  }
+  if (code.includes('invalid_credentials') || message.includes('invalid login credentials')) {
+    const storedAccounts = getStoredAccounts();
+    const hasLegacyAccount = Array.isArray(storedAccounts)
+      && storedAccounts.some((account) => getSafeEmail(account.email) === getSafeEmail(authEmailInput.value));
+    return hasLegacyAccount
+      ? 'このメールアドレスは以前このブラウザーだけに保存されていたアカウントの可能性があります。Supabase登録済みなら「パスワードを再設定」、旧ローカル登録のみなら「アカウント登録」から同じメールアドレスで登録し直してください。以前のパスワードは安全のため保存データから削除済みです。'
+      : 'メールアドレスまたはパスワードが違います。Supabaseアカウントをお持ちの場合は「パスワードを再設定」をお試しください。';
   }
   return error?.message || '認証に失敗しました。';
 }
@@ -165,7 +181,7 @@ function saveStoredAccounts(accounts) {
 
 function removeLegacyStoredPasswords() {
   const rawAccounts = localStorage.getItem(localAccountsStorageKey);
-  if (!rawAccounts) return;
+  if (!rawAccounts) return false;
 
   const accounts = JSON.parse(rawAccounts);
   if (!Array.isArray(accounts)) {
@@ -198,11 +214,26 @@ function getStoredCurrentUser() {
 }
 
 function setStoredCurrentUser(user) {
-  localStorage.setItem(localCurrentUserStorageKey, JSON.stringify(user));
+  try {
+    localStorage.setItem(localCurrentUserStorageKey, JSON.stringify(user));
+  } catch (error) {
+    console.error('ログイン補助情報をブラウザーに保存できませんでした', error);
+    showSecurityNotice('ログインは維持されていますが、ブラウザーの保存領域にログイン補助情報を保存できませんでした。');
+  }
 }
 
 function clearStoredCurrentUser() {
-  localStorage.removeItem(localCurrentUserStorageKey);
+  try {
+    localStorage.removeItem(localCurrentUserStorageKey);
+  } catch (error) {
+    console.error('ブラウザーに保存されたログイン補助情報を削除できませんでした', error);
+    showSecurityNotice('ブラウザーの保存領域からログイン補助情報を削除できませんでした。');
+  }
+}
+
+function showSecurityNotice(message) {
+  appSecurityNotice.textContent = message;
+  appSecurityNotice.hidden = false;
 }
 
 function loadUserData() {
@@ -278,6 +309,8 @@ function renderMypageProfile() {
 function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
+  authForm.hidden = false;
+  passwordRecoveryForm.hidden = true;
   emailField.hidden = isDeveloperMode;
   emailField.classList.remove('hidden');
   authEmailInput.required = !isDeveloperMode;
@@ -291,6 +324,7 @@ function setAuthMode(nextMode) {
   authForm.noValidate = false;
   authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
   authSwitchButton.hidden = isDeveloperMode;
+  resetPasswordButton.hidden = isDeveloperMode || nextMode !== 'signin';
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
@@ -298,6 +332,82 @@ function setAuthMode(nextMode) {
     : nextMode === 'signin'
       ? '登録済みのメールアドレスでサインインします。'
       : 'メール確認なしで登録するには、Supabaseの「Confirm email」をオフにしてください。';
+}
+
+async function requestPasswordReset() {
+  const email = getSafeEmail(authEmailInput.value);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    authMessage.textContent = 'パスワード再設定のため、登録したメールアドレスを入力してください。';
+    authEmailInput.focus();
+    return;
+  }
+  if (!supabaseClient) {
+    authMessage.textContent = 'パスワード再設定を利用できません。Supabaseの設定を確認してください。';
+    return;
+  }
+
+  resetPasswordButton.disabled = true;
+  try {
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+    authMessage.textContent = '再設定メールを送信しました。メール内のリンクから新しいパスワードを設定してください。届かない場合は迷惑メールとSupabaseのメール設定を確認してください。';
+  } catch (error) {
+    console.error('パスワード再設定メールを送信できませんでした', error);
+    authMessage.textContent = getAuthErrorMessage(error, 'signin');
+  } finally {
+    resetPasswordButton.disabled = false;
+  }
+}
+
+async function handlePasswordRecoverySubmit(event) {
+  event.preventDefault();
+  const password = recoveryPasswordInput.value.trim();
+  if (password.length < 6) {
+    passwordRecoveryMessage.textContent = '新しいパスワードは6文字以上で入力してください。';
+    return;
+  }
+  if (password !== recoveryPasswordConfirmInput.value) {
+    passwordRecoveryMessage.textContent = '新しいパスワードが確認用と一致しません。';
+    return;
+  }
+  if (!supabaseClient) {
+    passwordRecoveryMessage.textContent = 'パスワードを更新できません。Supabaseの設定を確認してください。';
+    return;
+  }
+
+  const submitButton = document.getElementById('save-recovery-password-btn');
+  submitButton.disabled = true;
+  passwordRecoveryMessage.textContent = 'パスワードを更新しています...';
+  try {
+    const { data, error } = await supabaseClient.auth.updateUser({ password });
+    if (error) throw error;
+    passwordRecoveryForm.reset();
+    setCurrentUser({
+      id: data.user.id,
+      email: data.user.email,
+      createdAt: data.user.created_at,
+      role: 'user'
+    });
+    setStoredCurrentUser(getCurrentUser());
+    passwordRecoveryForm.hidden = true;
+    authForm.hidden = false;
+    completeSuccessfulLogin(getCurrentUser());
+  } catch (error) {
+    console.error('パスワードを更新できませんでした', error);
+    passwordRecoveryMessage.textContent = getAuthErrorMessage(error, 'signin');
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+function showPasswordRecoveryView() {
+  authView.hidden = false;
+  appShell.hidden = true;
+  authForm.hidden = true;
+  passwordRecoveryForm.hidden = false;
+  passwordRecoveryMessage.textContent = '新しいパスワードを入力してください。';
+  recoveryPasswordInput.focus();
 }
 
 function showAuthView(message = '') {
@@ -311,6 +421,9 @@ function showAuthView(message = '') {
 function showAppView() {
   syncCurrentUserBadge();
   mypageButton.textContent = getCurrentUser()?.role === 'developer' ? '開発者コンソール' : 'マイページ';
+  if (legacyPasswordCleanupFailed) {
+    showSecurityNotice('以前のローカルパスワードを自動削除できませんでした。ブラウザーの保存領域を確認してください。');
+  }
   authView.hidden = true;
   appShell.hidden = false;
   renderUserData();
@@ -324,6 +437,7 @@ function completeSuccessfulLogin(user) {
   authPasswordInput.value = '';
   showPlanner();
   showAppView();
+  if (currentUser.role === 'developer') openVocAdminPage();
 }
 
 function renderUserData() {
@@ -337,7 +451,9 @@ async function handleAuthSubmit(event) {
   event.preventDefault();
 
   const email = authEmailInput.value.trim();
-  const password = authPasswordInput.value;
+  const password = authMode === 'developer'
+    ? authPasswordInput.value
+    : authPasswordInput.value.trim();
 
   if (authMode === 'developer') {
     if (!password) {
@@ -529,37 +645,71 @@ function formatRegistrantDate(value) {
     });
 }
 
-function getLocalRegistrants() {
-  return getStoredAccounts()
-    .filter((account) => account.role !== 'developer')
-    .sort((first, second) => new Date(second.createdAt || 0) - new Date(first.createdAt || 0));
-}
-
 function renderRegistrants() {
   const user = getCurrentUser();
   if (!user || user.role !== 'developer') {
     registrantsCount.textContent = '0件';
-    registrantsTableBody.innerHTML = '<tr><td colspan="3" class="empty-message">開発者ログインでのみ登録者情報を確認できます。</td></tr>';
+    registrantsTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">開発者ログインでのみ登録者情報を確認できます。</td></tr>';
     registrantsMessage.textContent = '開発者権限が必要です。';
     return;
   }
 
-  const accounts = getLocalRegistrants();
   const query = registrantsSearch.value.trim().toLocaleLowerCase();
-  const filteredAccounts = query
-    ? accounts.filter((account) => String(account.email || '').toLocaleLowerCase().includes(query))
-    : accounts;
-  registrantsCount.textContent = `${filteredAccounts.length}件`;
+  const filteredUsers = query
+    ? registeredUsers.filter((account) => JSON.stringify(account).toLocaleLowerCase().includes(query))
+    : registeredUsers;
+  registrantsCount.textContent = `${filteredUsers.length}件`;
   registrantsMessage.textContent = '';
-  registrantsTableBody.innerHTML = filteredAccounts.length
-    ? filteredAccounts.map((account) => `
+  registrantsTableBody.innerHTML = filteredUsers.length
+    ? filteredUsers.map((account) => `
         <tr>
-          <td data-label="メールアドレス">${escapeHtml(account.email)}</td>
-          <td data-label="登録日時">${escapeHtml(formatRegistrantDate(account.createdAt))}</td>
-          <td data-label="操作"><button class="danger-btn" type="button" data-delete-registrant="${escapeHtml(account.id)}">登録を削除</button></td>
+          <td data-label="メールアドレス">${escapeHtml(account.email || '未設定')}</td>
+          <td data-label="登録日時">${escapeHtml(formatRegistrantDate(account.created_at))}</td>
+          <td data-label="最終ログイン">${escapeHtml(formatRegistrantDate(account.last_sign_in_at))}</td>
+          <td data-label="登録情報">
+            <details class="registrant-details">
+              <summary>全登録情報を見る</summary>
+              <pre>${escapeHtml(JSON.stringify(account, null, 2))}</pre>
+            </details>
+          </td>
         </tr>
       `).join('')
-    : `<tr><td colspan="3" class="empty-message">${query ? '検索条件に一致する登録者はいません。' : 'ローカル登録者はいません。'}</td></tr>`;
+    : `<tr><td colspan="4" class="empty-message">${query ? '検索条件に一致する登録者はいません。' : '登録者はいません。'}</td></tr>`;
+}
+
+async function loadRegistrants() {
+  const user = getCurrentUser();
+  if (!user || user.role !== 'developer') {
+    renderRegistrants();
+    return;
+  }
+  if (!supabaseClient) {
+    registrantsMessage.textContent = '登録者情報を取得できません。Supabaseの設定を確認してください。';
+    return;
+  }
+
+  registrantsMessage.textContent = 'Supabase Authから登録者情報を読み込んでいます...';
+  registrantsTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">読み込み中...</td></tr>';
+  try {
+    const developerPassword = sessionStorage.getItem(developerPasswordStorageKey);
+    if (!developerPassword) throw new Error('開発者ログインの有効期限が切れました。再ログインしてください。');
+    const { data, error } = await supabaseClient.functions.invoke('developer-announcements', {
+      method: 'GET',
+      headers: {
+        'x-developer-password': developerPassword,
+        'x-developer-resource': 'users'
+      }
+    });
+    if (error) throw error;
+    if (!Array.isArray(data?.users)) throw new Error('登録者一覧の応答形式が正しくありません。');
+    registeredUsers = data.users;
+    renderRegistrants();
+  } catch (error) {
+    console.error('Supabase登録者情報を取得できませんでした', error);
+    registrantsCount.textContent = '--';
+    registrantsMessage.textContent = error.message || '登録者情報を取得できませんでした。Edge Functionの更新状態を確認してください。';
+    registrantsTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">登録者情報を読み込めませんでした。</td></tr>';
+  }
 }
 
 function exportRegistrantsCsv() {
@@ -569,8 +719,7 @@ function exportRegistrantsCsv() {
     return;
   }
 
-  const accounts = getLocalRegistrants();
-  if (!accounts.length) {
+  if (!registeredUsers.length) {
     registrantsMessage.textContent = '書き出す登録者がいません。';
     return;
   }
@@ -580,9 +729,17 @@ function exportRegistrantsCsv() {
     if (/^[\s]*[=+\-@]/.test(text)) text = `'${text}`;
     return `"${text.replace(/"/g, '""')}"`;
   };
+  const fields = [
+    'id', 'email', 'phone', 'created_at', 'updated_at', 'last_sign_in_at',
+    'email_confirmed_at', 'phone_confirmed_at', 'confirmed_at', 'confirmation_sent_at', 'banned_until',
+    'aud', 'role', 'is_anonymous', 'app_metadata', 'user_metadata', 'identities'
+  ];
   const rows = [
-    ['メールアドレス', '登録日時'].map(toCsvCell).join(','),
-    ...accounts.map((account) => [account.email, account.createdAt].map(toCsvCell).join(','))
+    fields.map(toCsvCell).join(','),
+    ...registeredUsers.map((account) => fields.map((field) => {
+      const value = account[field];
+      return toCsvCell(value && typeof value === 'object' ? JSON.stringify(value) : value);
+    }).join(','))
   ];
   const blob = new Blob([`\uFEFF${rows.join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -591,7 +748,7 @@ function exportRegistrantsCsv() {
   link.download = `recipeta-registrants-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  registrantsMessage.textContent = `${accounts.length}件の登録者情報をCSVに書き出しました。`;
+  registrantsMessage.textContent = `${registeredUsers.length}件の登録者情報をCSVに書き出しました。`;
 }
 
 function openRegistrantsPage() {
@@ -605,7 +762,7 @@ function openRegistrantsPage() {
   plannerView.hidden = true;
   registrantsPage.hidden = false;
   registrantsMessage.textContent = '';
-  renderRegistrants();
+  void loadRegistrants();
 }
 
 function closeRegistrantsPage() {
@@ -613,37 +770,6 @@ function closeRegistrantsPage() {
   vocAdminPage.hidden = false;
   plannerView.hidden = true;
   window.vocManager?.loadAdmin();
-}
-
-function deleteRegistrant(id) {
-  const user = getCurrentUser();
-  if (!user || user.role !== 'developer') {
-    registrantsMessage.textContent = '登録の削除には開発者権限が必要です。';
-    return;
-  }
-
-  const accounts = getLocalRegistrants();
-  const account = accounts.find((item) => item.id === id);
-  if (!account) {
-    registrantsMessage.textContent = '登録者が見つかりません。一覧を更新してください。';
-    return;
-  }
-  if (!window.confirm(`${account.email} のローカル登録と、このブラウザに保存された利用データ・VOCを削除しますか？この操作は取り消せません。`)) {
-    return;
-  }
-
-  try {
-    const vocMessages = JSON.parse(localStorage.getItem('meal-planner-voc-messages') || '[]');
-    if (!Array.isArray(vocMessages)) throw new Error('VOCデータの形式が正しくありません。');
-    saveStoredAccounts(getStoredAccounts().filter((item) => item.id !== id));
-    localStorage.setItem('meal-planner-voc-messages', JSON.stringify(vocMessages.filter((message) => message.userId !== id)));
-    localStorage.removeItem(getUserDataKey(account.email));
-    renderRegistrants();
-    registrantsMessage.textContent = 'ローカル登録と、このブラウザに保存された利用データ・VOCを削除しました。';
-  } catch (error) {
-    console.error('登録者情報を削除できませんでした', error);
-    registrantsMessage.textContent = '登録者情報を削除できませんでした。ブラウザの保存領域を確認してください。';
-  }
 }
 
 function openAnnouncementsPage() {
@@ -663,7 +789,7 @@ async function handleMypageSubmit(event) {
   }
 
   const nextEmail = mypageEmailInput.value.trim();
-  const currentPassword = mypageCurrentPasswordInput.value;
+  const currentPassword = mypageCurrentPasswordInput.value.trim();
   const newPassword = mypageNewPasswordInput.value.trim();
   const passwordConfirm = mypageNewPasswordConfirmInput.value.trim();
 
@@ -1942,14 +2068,11 @@ function addBookmark(plan) {
 }
 
 async function initializeAuthFlow() {
-  let removedLegacyPasswords = false;
   try {
-    removedLegacyPasswords = removeLegacyStoredPasswords();
+    legacyPasswordCleanupFailed = !removeLegacyStoredPasswords();
   } catch (error) {
     console.error('以前のブラウザー保存パスワードを削除できませんでした', error);
-    setAuthMode('signin');
-    showAuthView('以前のブラウザー保存パスワードを削除できません。ブラウザーの保存領域を確認してください。');
-    return;
+    legacyPasswordCleanupFailed = true;
   }
 
   const savedUser = getStoredCurrentUser();
@@ -1978,8 +2101,8 @@ async function initializeAuthFlow() {
   if (!supabaseClient) {
     clearStoredCurrentUser();
     setAuthMode('signin');
-    showAuthView(removedLegacyPasswords
-      ? '以前のブラウザー保存パスワードを削除しました。安全なログインにはSupabaseの設定が必要です。'
+    showAuthView(legacyPasswordCleanupFailed
+      ? '以前のローカルパスワードを削除できませんでした。安全なログインにはSupabaseの設定が必要です。'
       : '安全なログイン機能を利用できません。Supabaseの設定を確認してください。');
     return;
   }
@@ -2014,8 +2137,8 @@ async function initializeAuthFlow() {
 
   clearStoredCurrentUser();
   setAuthMode('signin');
-  showAuthView(removedLegacyPasswords
-    ? '以前のブラウザー保存パスワードを削除しました。Supabaseのアカウントでサインインしてください。'
+  showAuthView(legacyPasswordCleanupFailed
+    ? '以前のローカルパスワードを削除できませんでした。ブラウザーの保存領域を確認してからサインインしてください。'
     : 'メールアドレスでサインインしてください。');
 }
 
@@ -2302,6 +2425,8 @@ resultPanel.addEventListener('keydown', (event) => {
 });
 
 authForm.addEventListener('submit', handleAuthSubmit);
+passwordRecoveryForm.addEventListener('submit', handlePasswordRecoverySubmit);
+resetPasswordButton.addEventListener('click', requestPasswordReset);
 authSwitchButton.addEventListener('click', () => {
   setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
   authEmailInput.focus();
@@ -2321,17 +2446,17 @@ openAnnouncementAdminButton.addEventListener('click', openAnnouncementAdminPage)
 closeAnnouncementAdminButton.addEventListener('click', openVocAdminPage);
 announcementRefreshButton.addEventListener('click', () => window.announcementsManager?.loadAdmin());
 registrantsSearch.addEventListener('input', renderRegistrants);
-registrantsRefreshButton.addEventListener('click', renderRegistrants);
+registrantsRefreshButton.addEventListener('click', () => void loadRegistrants());
 registrantsExportButton.addEventListener('click', exportRegistrantsCsv);
-registrantsTableBody.addEventListener('click', (event) => {
-  const deleteButton = event.target.closest('[data-delete-registrant]');
-  if (deleteButton) deleteRegistrant(deleteButton.dataset.deleteRegistrant);
-});
 document.addEventListener('click', (event) => {
   const toggleButton = event.target.closest('[data-password-toggle]');
   if (toggleButton) {
     togglePasswordVisibility(event);
   }
+});
+
+supabaseClient?.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') showPasswordRecoveryView();
 });
 
 form.addEventListener('submit', (event) => {

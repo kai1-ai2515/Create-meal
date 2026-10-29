@@ -1,6 +1,6 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "apikey, authorization, content-type, x-client-info, x-developer-password",
+  "Access-Control-Allow-Headers": "apikey, authorization, content-type, x-client-info, x-developer-password, x-developer-resource",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 };
 
@@ -39,6 +39,84 @@ async function requestAnnouncements(
     throw new Error(`Announcement service returned HTTP ${response.status}.`);
   }
   return data;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function omitCredentialFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(omitCredentialFields);
+  if (!isRecord(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !/(password|token|secret|credential)/i.test(key))
+      .map(([key, field]) => [key, omitCredentialFields(field)]),
+  );
+}
+
+async function requestAuthUsers(url: string, serviceRoleKey: string) {
+  const users: Record<string, unknown>[] = [];
+  const pageSize = 1000;
+  const visibleFields = [
+    "id",
+    "aud",
+    "role",
+    "email",
+    "phone",
+    "created_at",
+    "updated_at",
+    "last_sign_in_at",
+    "email_confirmed_at",
+    "phone_confirmed_at",
+    "confirmed_at",
+    "confirmation_sent_at",
+    "banned_until",
+    "is_anonymous",
+    "app_metadata",
+    "user_metadata",
+    "identities",
+  ];
+
+  for (let page = 1; page <= 1000; page += 1) {
+    const query = new URLSearchParams({
+      page: String(page),
+      per_page: String(pageSize),
+    });
+    const response = await fetch(
+      `${url}/auth/v1/admin/users?${query}`,
+      {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Auth user listing returned HTTP ${response.status}.`);
+    }
+
+    const payload: unknown = await response.json();
+    const pageUsers = isRecord(payload) && Array.isArray(payload.users)
+      ? payload.users
+      : null;
+    if (!pageUsers) throw new Error("Auth user listing returned an invalid response.");
+
+    for (const user of pageUsers) {
+      if (!isRecord(user)) continue;
+      const visibleUser: Record<string, unknown> = {};
+      for (const field of visibleFields) {
+        if (Object.prototype.hasOwnProperty.call(user, field)) {
+          visibleUser[field] = omitCredentialFields(user[field]);
+        }
+      }
+      users.push(visibleUser);
+    }
+
+    if (pageUsers.length < pageSize) return users;
+  }
+
+  throw new Error("Auth user listing exceeded the supported page limit.");
 }
 
 async function digest(value: string) {
@@ -88,6 +166,11 @@ Deno.serve(async (request) => {
 
   try {
     if (request.method === "GET") {
+      if (request.headers.get("x-developer-resource") === "users") {
+        const users = await requestAuthUsers(supabaseUrl, serviceRoleKey);
+        return jsonResponse({ users });
+      }
+
       const query = new URLSearchParams({
         select: "id,title,body,published_at",
         order: "published_at.desc",
