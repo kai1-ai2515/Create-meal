@@ -126,7 +126,7 @@ function getAuthErrorMessage(error, mode) {
   const message = String(error?.message || '').toLowerCase();
   if (code.includes('email_send_rate_limit') || message.includes('email rate limit exceeded')) {
     return mode === 'signup'
-      ? '登録確認メールを送信できませんでした。時間をおいて再度お試しください。'
+      ? '登録確認メールの送信上限に達しました。登録ボタンを繰り返し押さず、時間をおいてください。すでに登録済みの方はログインし、ログインできない場合は「パスワード再設定メールを送る」をお試しください。'
       : 'メールの送信回数が上限に達しました。しばらく待ってから再度お試しください。';
   }
   if (code.includes('rate_limit') || message.includes('rate limit')) {

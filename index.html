@@ -39,11 +39,11 @@
             <button id="auth-submit-btn" type="submit">ログイン</button>
             <button id="auth-switch-btn" type="button" class="secondary-btn">初めての方はこちら（新規登録）</button>
           </div>
-          <details class="auth-login-help">
-            <summary>パスワードを忘れた方・ログインでお困りの方</summary>
+          <details class="auth-login-help" open>
+            <summary>ログインできない方・パスワードを忘れた方</summary>
             <div class="auth-login-help-content">
-              <p>パスワードを忘れた場合は、登録したメールアドレスを上に入力し、本人確認メールをお送りください。メールのリンクから新しいパスワードを設定できます。</p>
-              <button id="reset-password-btn" class="auth-reset-password-btn" type="button">本人確認メールを送る</button>
+              <p>登録したメールアドレスを上に入力してから、下のボタンを押してください。届いたメールのリンクから新しいパスワードを設定できます。ログインには確認メールの再送は不要です。</p>
+              <button id="reset-password-btn" class="auth-reset-password-btn" type="button">パスワード再設定メールを送る</button>
               <p class="auth-login-help-note">以前のレシピタで登録した方は、同じメールアドレスで「新規登録」をお試しください。すでに登録済みと表示された場合は、ログイン画面へ戻ってください。</p>
             </div>
           </details>
@@ -663,6 +663,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-password-only-dev"></script>
-    <script src="script.js?v=20261109-auth-menu-clarity"></script>
+    <script src="script.js?v=20261109-login-recovery"></script>
   </body>
 </html>
