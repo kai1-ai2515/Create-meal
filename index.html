@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261029-user-friendly-auth" />
+    <link rel="stylesheet" href="styles.css?v=20261109-instagram-layout" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -75,50 +75,59 @@
 
     <div class="app-shell" hidden>
       <p id="app-security-notice" class="app-security-notice" role="status" hidden></p>
-      <header class="topbar">
-        <div class="user-chip">
-          <span class="profile-avatar" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="8" r="3.5" />
-              <path d="M5.5 20c.6-3.5 3.1-5.5 6.5-5.5s5.9 2 6.5 5.5" />
-            </svg>
-          </span>
-          <span class="user-info">
-            <span class="user-label">無料アカウント</span>
-            <strong id="current-user-name">未ログイン</strong>
-          </span>
-        </div>
-        <button id="mypage-btn" class="mypage-btn" type="button"><span aria-hidden="true">⚙</span> マイページ</button>
-      </header>
-
-      <header class="hero">
-        <div class="hero-topline">
-          <p class="eyebrow">毎日の献立をもっとラクに</p>
+      <div class="app-layout">
+        <aside class="app-sidebar" aria-label="メインメニュー">
+          <a class="brand-mark" href="#meal-form" aria-label="レシピタ ホーム">
+            <span class="brand-icon" aria-hidden="true">🍽️</span>
+            <span>レシピタ</span>
+          </a>
+          <p class="sidebar-section-label">MENU</p>
           <nav class="utility-nav" aria-label="便利機能">
             <button id="open-fridge-btn" class="utility-icon-btn" type="button" aria-label="冷蔵庫レスキューを開く" title="冷蔵庫レスキューを開く">
-              <span aria-hidden="true">🧊</span>
-              <span class="utility-label" aria-hidden="true">冷蔵庫</span>
+              <span class="utility-symbol" aria-hidden="true">🧊</span>
+              <span class="utility-label">冷蔵庫</span>
             </button>
             <button id="open-shopping-btn" class="utility-icon-btn" type="button" aria-label="買い物メモを開く" title="買い物メモを開く">
-              <span aria-hidden="true">🛒</span>
-              <span class="utility-label" aria-hidden="true">買い物</span>
+              <span class="utility-symbol" aria-hidden="true">🛒</span>
+              <span class="utility-label">買い物</span>
             </button>
             <button id="open-history-btn" class="utility-icon-btn" type="button" aria-label="献立履歴を開く" title="献立履歴を開く">
-              <span aria-hidden="true">🕘</span>
-              <span class="utility-label" aria-hidden="true">履歴</span>
+              <span class="utility-symbol" aria-hidden="true">🕘</span>
+              <span class="utility-label">履歴</span>
               <span id="history-count" class="utility-count">0</span>
             </button>
             <button id="open-announcements-btn" class="utility-icon-btn" type="button" aria-label="お知らせを開く" title="お知らせを開く">
-              <span aria-hidden="true">📢</span>
-              <span class="utility-label" aria-hidden="true">お知らせ</span>
+              <span class="utility-symbol" aria-hidden="true">📢</span>
+              <span class="utility-label">お知らせ</span>
               <span id="announcement-count" class="utility-count" hidden>0</span>
             </button>
             <button id="open-bookmarks-btn" class="utility-icon-btn" type="button" aria-label="ブックマークを開く" title="ブックマークを開く">
-              <span aria-hidden="true">🔖</span>
-              <span class="utility-label" aria-hidden="true">保存</span>
+              <span class="utility-symbol" aria-hidden="true">🔖</span>
+              <span class="utility-label">保存</span>
               <span id="bookmark-count" class="utility-count">0</span>
             </button>
           </nav>
+          <div class="sidebar-account">
+            <div class="user-chip">
+              <span class="profile-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="8" r="3.5" />
+                  <path d="M5.5 20c.6-3.5 3.1-5.5 6.5-5.5s5.9 2 6.5 5.5" />
+                </svg>
+              </span>
+              <span class="user-info">
+                <span class="user-label">無料アカウント</span>
+                <strong id="current-user-name">未ログイン</strong>
+              </span>
+            </div>
+            <button id="mypage-btn" class="mypage-btn" type="button"><span aria-hidden="true">⚙</span> マイページ</button>
+          </div>
+        </aside>
+
+        <div class="app-main">
+        <header class="hero">
+        <div class="hero-topline">
+          <p class="eyebrow">毎日の献立をもっとラクに</p>
         </div>
         <h1>レシピタ</h1>
         <p class="hero-text">
@@ -258,6 +267,8 @@
         <p id="recipe-search-hint" class="recipe-search-hint">材料の分量は、上の「人数」に合わせて表示されます。</p>
         <div id="recipe-search-results" class="recipe-search-results" aria-live="polite"></div>
       </section>
+        </div>
+      </div>
 
       <section class="panel subpage bookmarks-page" id="bookmarks-page" hidden>
         <div class="bookmarks-header">

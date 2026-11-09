@@ -3133,6 +3133,369 @@ summary:focus-visible {
   }
 }
 
+/* Social-feed inspired application layout */
+body {
+  background: #f4f3ef;
+}
+
+.app-shell {
+  width: min(100%, 1440px);
+  max-width: none;
+  padding: 24px 32px 48px;
+}
+
+.app-layout {
+  display: grid;
+  grid-template-columns: 238px minmax(0, 700px);
+  justify-content: center;
+  align-items: start;
+  gap: 38px;
+}
+
+.app-sidebar {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  min-height: calc(100dvh - 48px);
+  flex-direction: column;
+  padding: 10px 0 18px;
+  border-right: 1px solid #e6e5df;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  width: fit-content;
+  margin: 0 0 42px 10px;
+  color: #29352f;
+  font-family: "Nunito", "M PLUS Rounded 1c", sans-serif;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.brand-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #eadfd1;
+  border-radius: 15px;
+  background: #fff;
+  font-size: 1.35rem;
+}
+
+.sidebar-section-label {
+  margin: 0 0 10px 14px;
+  color: #92958d;
+  font-family: "Nunito", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.utility-nav {
+  display: grid;
+  gap: 7px;
+}
+
+.utility-icon-btn {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 50px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: transparent;
+  color: #364039;
+  font-size: 1rem;
+  text-align: left;
+  box-shadow: none;
+}
+
+.utility-icon-btn:hover {
+  transform: none;
+  border-color: #e9e7e0;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(50, 62, 55, 0.045);
+}
+
+.utility-symbol {
+  display: grid;
+  width: 27px;
+  flex: 0 0 27px;
+  place-items: center;
+  font-size: 1.25rem;
+}
+
+.utility-label {
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.utility-count {
+  top: 1px;
+  right: 3px;
+  min-width: 18px;
+  height: 18px;
+  border: 2px solid #f4f3ef;
+  font-size: 0.64rem;
+}
+
+.sidebar-account {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding: 18px 10px 0 0;
+  border-top: 1px solid #e6e5df;
+}
+
+.user-chip {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.user-chip strong {
+  max-width: 168px;
+}
+
+.mypage-btn {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 13px;
+  border-color: transparent;
+  border-radius: 13px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mypage-btn:hover {
+  border-color: #e9e7e0;
+  background: #fff;
+}
+
+.app-main {
+  width: 100%;
+  min-width: 0;
+  max-width: 700px;
+}
+
+.hero {
+  margin-bottom: 18px;
+  padding: 22px;
+  border: 1px solid #e8e7e1;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(50, 62, 55, 0.035);
+}
+
+.hero-topline {
+  align-items: center;
+}
+
+.hero h1 {
+  margin-top: 7px;
+  margin-bottom: 5px;
+  font-size: clamp(1.7rem, 3vw, 2rem);
+}
+
+.hero-text {
+  font-size: 0.9rem;
+}
+
+.health-master {
+  margin-top: 18px;
+  padding: 16px;
+  border-color: #e5eee7;
+  border-radius: 15px;
+  background: #f7faf7;
+  box-shadow: none;
+}
+
+.content {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.panel {
+  padding: 20px;
+  border-color: #e8e7e1;
+  border-radius: 16px;
+  box-shadow: 0 5px 18px rgba(50, 62, 55, 0.035);
+}
+
+.controls h2,
+.result h2 {
+  font-size: 1.12rem;
+}
+
+.recipe-search-panel {
+  margin-top: 14px;
+}
+
+.recipe-search-results {
+  gap: 12px;
+}
+
+.app-security-notice {
+  max-width: 976px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .app-layout {
+    grid-template-columns: 200px minmax(0, 700px);
+    gap: 22px;
+  }
+
+  .utility-icon-btn {
+    gap: 10px;
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .utility-label {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .app-shell {
+    padding: 14px 14px 110px;
+  }
+
+  .app-layout {
+    display: block;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    z-index: 8;
+    inset: auto 0 0;
+    display: grid;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 4px;
+    padding: 7px max(12px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    border: 0;
+    border-top: 1px solid #e6e5df;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 -5px 20px rgba(50, 62, 55, 0.07);
+    backdrop-filter: blur(16px);
+  }
+
+  .brand-mark,
+  .sidebar-section-label,
+  .user-chip {
+    display: none;
+  }
+
+  .utility-nav {
+    grid-column: 1;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .utility-icon-btn {
+    display: grid;
+    min-width: 0;
+    min-height: 52px;
+    grid-template-rows: 1fr auto;
+    justify-items: center;
+    gap: 1px;
+    padding: 4px 1px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+  }
+
+  .utility-icon-btn:hover {
+    border-color: transparent;
+    background: #f6f5f1;
+    box-shadow: none;
+  }
+
+  .utility-symbol {
+    width: auto;
+    flex-basis: auto;
+    font-size: 1.2rem;
+  }
+
+  .utility-label {
+    max-width: 100%;
+    font-size: 0.58rem;
+    line-height: 1.15;
+  }
+
+  .utility-count {
+    top: 0;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    border-width: 1px;
+    font-size: 0.58rem;
+  }
+
+  .sidebar-account {
+    display: block;
+    grid-column: 2;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .mypage-btn {
+    width: 44px;
+    min-height: 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 7px;
+    border-radius: 10px;
+    font-size: 0;
+  }
+
+  .mypage-btn span {
+    font-size: 1.2rem;
+  }
+
+  .app-main {
+    max-width: none;
+  }
+
+  .hero {
+    padding: 17px;
+  }
+
+  .hero-text {
+    font-size: 0.84rem;
+  }
+
+  .health-master {
+    padding: 13px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}
+
 @media (min-width: 561px) and (max-width: 760px) {
   .hero-topline {
     align-items: flex-start;
