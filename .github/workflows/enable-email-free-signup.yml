@@ -1,0 +1,39 @@
+name: Enable email-free signup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configure-auth:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Check Supabase settings
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "::error::GitHub repository secrets SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF are required."
+            exit 1
+          fi
+
+      - name: Disable signup confirmation emails
+        run: |
+          status_code="$(curl --silent --show-error \
+            --output /dev/null \
+            --write-out "%{http_code}" \
+            --request PATCH \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{"mailer_autoconfirm":true}' \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth")"
+
+          if [ "$status_code" -lt 200 ] || [ "$status_code" -ge 300 ]; then
+            echo "::error::Supabase Auth configuration failed with HTTP $status_code."
+            exit 1
+          fi
+
+          echo "Supabase signup email confirmation is disabled."

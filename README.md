@@ -30,7 +30,9 @@
 
 ### 一般ユーザーの登録設定
 
-登録時の確認メールを不要にするには、[SupabaseのEmail設定](https://supabase.com/dashboard/project/yrgatpjebzjfnwynxowy/auth/providers)で **Confirm email** をオフにします。登録時のメールは送られませんが、パスワードを忘れた場合の本人確認にはメールが必要です。本人確認を省いてパスワードを変更する方法は、アカウント乗っ取りを防ぐため提供しません。
+一般ユーザーの新規登録で確認メールを送らないようにするには、GitHubリポジトリの **Actions → Enable email-free signup → Run workflow** を実行します。この設定はSupabase Authのメール確認を自動完了にし、登録確認メールなしで新規登録とログインを可能にします。メールアドレスの所有確認は省略されます。パスワードを忘れた場合の本人確認には引き続きメールが必要で、登録メールを送らずにパスワードを変更する方法はありません。
+
+この設定は既存ユーザーのパスワードや登録情報を変更しません。設定前に作成され、メール未確認のままのアカウントは自動で確認済みにならないため、Supabase Dashboard の **Authentication → Users** から管理者が確認状態を更新してください。
 
 パスワード再設定メールを届けるため、Supabaseの **Authentication → URL Configuration → Redirect URLs** に公開ページURL `https://kai1-ai2515.github.io/Create-meal/` を許可リストへ追加してください。ユーザーはログイン画面の「ログインできない場合はこちら」から再設定できます。
 
