@@ -3198,6 +3198,7 @@ body {
 
 .utility-nav {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 7px;
 }
 
@@ -3410,7 +3411,7 @@ body {
 
   .utility-nav {
     grid-column: 1;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 2px;
   }
 
@@ -3631,10 +3632,6 @@ body {
 @media (max-width: 700px) {
   .app-sidebar {
     z-index: 11;
-  }
-
-  .utility-nav {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .shorts-page {

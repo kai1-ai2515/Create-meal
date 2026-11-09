@@ -7,20 +7,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261109-instagram-layout" />
+    <link rel="stylesheet" href="styles.css?v=20261109-auth-menu-clarity" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
       <div class="auth-card">
         <div class="auth-illustration" aria-hidden="true">🍽️</div>
         <div class="auth-status" aria-label="アカウント種別">
-          <span class="status-pill">無料登録</span>
-          <span class="status-pill subtle">ログイン</span>
+          <span class="status-pill">一般ユーザー</span>
+          <span class="status-pill subtle">無料で利用できます</span>
         </div>
         <p class="auth-kicker">RecipeTa</p>
         <h1>毎日のごはんを、もっと楽しく</h1>
         <p class="auth-copy">
-          レシピタで献立作り、買い物、履歴管理を簡単に。<br />アカウント登録、または開発者ログインから始められます。
+          登録済みの方はログインしてください。初めての方は、メールアドレスとパスワードで無料登録できます。
         </p>
 
         <form id="auth-form" class="auth-form">
@@ -31,19 +31,19 @@
 
           <label class="auth-field">
             <span id="auth-password-label">パスワード</span>
-            <input id="auth-password" type="password" minlength="6" maxlength="32" placeholder="6文字以上" autocomplete="current-password" required />
+            <input id="auth-password" type="password" minlength="6" maxlength="32" placeholder="6文字以上のパスワード" autocomplete="current-password" required />
           </label>
 
           <div class="auth-actions">
-            <button id="auth-submit-btn" type="submit">サインイン</button>
-            <button id="auth-switch-btn" type="button" class="secondary-btn">アカウント登録</button>
+            <button id="auth-submit-btn" type="submit">ログイン</button>
+            <button id="auth-switch-btn" type="button" class="secondary-btn">初めての方はこちら（新規登録）</button>
           </div>
           <details class="auth-login-help">
             <summary>パスワードを忘れた方・ログインでお困りの方</summary>
             <div class="auth-login-help-content">
               <p>パスワードを忘れた場合は、登録したメールアドレスを上に入力し、本人確認メールをお送りください。メールのリンクから新しいパスワードを設定できます。</p>
               <button id="reset-password-btn" class="auth-reset-password-btn" type="button">本人確認メールを送る</button>
-              <p class="auth-login-help-note">以前のレシピタで登録した方は、同じメールアドレスで「アカウント登録」をお試しください。すでに登録済みと表示される場合は、上のサインインからお進みください。</p>
+              <p class="auth-login-help-note">以前のレシピタで登録した方は、同じメールアドレスで「新規登録」をお試しください。すでに登録済みと表示された場合は、ログイン画面へ戻ってください。</p>
             </div>
           </details>
 
@@ -663,6 +663,6 @@
     <script src="supabase-config.js"></script>
     <script src="voc.js?v=20261008-voc-setup"></script>
     <script src="announcements.js?v=20261010-password-only-dev"></script>
-    <script src="script.js?v=20261029-user-friendly-auth"></script>
+    <script src="script.js?v=20261109-auth-menu-clarity"></script>
   </body>
 </html>

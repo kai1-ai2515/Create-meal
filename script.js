@@ -136,14 +136,14 @@ function getAuthErrorMessage(error, mode) {
     return 'メールアドレスの確認がまだ完了していません。登録時に届いたメールをご確認ください。見つからない場合は、時間をおいて再度アカウント登録をお試しください。';
   }
   if (mode === 'signup' && (code.includes('already') || message.includes('already registered'))) {
-    return 'このメールアドレスはすでに登録されています。「サインイン」するか、「パスワードを忘れた方」から本人確認メールをお送りください。';
+    return 'このメールアドレスはすでに登録されています。「登録済みの方はこちら（ログイン）」からログインしてください。パスワードを忘れた場合は、本人確認メールをお送りします。';
   }
   if (code.includes('invalid_credentials') || message.includes('invalid login credentials')) {
     const storedAccounts = getStoredAccounts();
     const hasLegacyAccount = Array.isArray(storedAccounts)
       && storedAccounts.some((account) => getSafeEmail(account.email) === getSafeEmail(authEmailInput.value));
     return hasLegacyAccount
-      ? 'メールアドレスまたはパスワードをご確認ください。以前のレシピタで登録し、新しいアカウントをまだ作っていない場合は、「アカウント登録」から同じメールアドレスでお試しください。'
+      ? 'メールアドレスまたはパスワードをご確認ください。以前のレシピタで登録し、新しいアカウントをまだ作っていない場合は、「初めての方はこちら（新規登録）」から同じメールアドレスでお試しください。'
       : 'メールアドレスまたはパスワードをご確認ください。入力に誤りがない場合は、「パスワードを忘れた方」から本人確認へお進みください。';
   }
   return 'ログインできませんでした。入力内容と通信状態を確認して、もう一度お試しください。';
@@ -322,20 +322,25 @@ function setAuthMode(nextMode) {
   authEmailInput.placeholder = 'name@gmail.com';
   authPasswordInput.minLength = isDeveloperMode ? 16 : 6;
   authPasswordInput.maxLength = isDeveloperMode ? 128 : 32;
-  authPasswordInput.autocomplete = 'current-password';
-  authPasswordInput.placeholder = isDeveloperMode ? '開発者パスワード' : '6文字以上';
-  authPasswordLabel.textContent = isDeveloperMode ? '開発者パスワード' : 'パスワード';
+  authPasswordInput.autocomplete = nextMode === 'signup' ? 'new-password' : 'current-password';
+  authPasswordInput.placeholder = isDeveloperMode ? '開発者パスワード' : '6文字以上のパスワード';
+  authPasswordLabel.textContent = isDeveloperMode
+    ? '開発者パスワード'
+    : nextMode === 'signup' ? 'パスワード（6文字以上）' : 'パスワード';
   authForm.noValidate = false;
-  authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'サインイン' : 'サインアップ';
+  authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'ログイン' : '無料で新規登録';
   authSwitchButton.hidden = isDeveloperMode;
+  authSwitchButton.textContent = nextMode === 'signin'
+    ? '初めての方はこちら（新規登録）'
+    : '登録済みの方はこちら（ログイン）';
   resetPasswordButton.hidden = isDeveloperMode || nextMode !== 'signin';
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
     ? '開発者専用パスワードを入力してください。'
     : nextMode === 'signin'
-      ? '登録済みのメールアドレスでサインインします。'
-      : 'メールアドレスと6文字以上のパスワードで登録できます。';
+      ? '登録済みの方はこちら。メールアドレスとパスワードを入力してログインしてください。'
+      : '初めての方はこちら。メールアドレスと6文字以上のパスワードで登録できます。';
 }
 
 async function requestPasswordReset() {
@@ -607,7 +612,7 @@ async function handleLogout() {
   setAuthMode('signin');
   syncCurrentUserBadge();
   mypagePanel.hidden = true;
-  showAuthView('ログアウトしました。メールアドレスとパスワードで再度サインインしてください。');
+  showAuthView('ログアウトしました。メールアドレスとパスワードで再度ログインしてください。');
 }
 
 function openMypage() {
@@ -2180,8 +2185,8 @@ async function initializeAuthFlow() {
   clearStoredCurrentUser();
   setAuthMode('signin');
   showAuthView(legacyPasswordCleanupFailed
-    ? '以前のローカルパスワードを削除できませんでした。ブラウザーの保存領域を確認してからサインインしてください。'
-    : 'メールアドレスでサインインしてください。');
+    ? '以前のローカルパスワードを削除できませんでした。ブラウザーの保存領域を確認してからログインしてください。'
+    : '登録済みの方は、メールアドレスとパスワードでログインしてください。');
 }
 
 function hideSubpages() {
