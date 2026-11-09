@@ -87,6 +87,10 @@
               <span class="utility-symbol" aria-hidden="true">🧊</span>
               <span class="utility-label">冷蔵庫</span>
             </button>
+            <button id="open-shorts-btn" class="utility-icon-btn" type="button" aria-label="ショート動画を開く" title="ショート動画を開く">
+              <span class="utility-symbol" aria-hidden="true">🎬</span>
+              <span class="utility-label">動画</span>
+            </button>
             <button id="open-shopping-btn" class="utility-icon-btn" type="button" aria-label="買い物メモを開く" title="買い物メモを開く">
               <span class="utility-symbol" aria-hidden="true">🛒</span>
               <span class="utility-label">買い物</span>
@@ -319,6 +323,31 @@
         <p id="announcements-message" class="mypage-message" aria-live="polite"></p>
         <div id="announcements-list" class="announcements-list">
           <p class="empty-message">お知らせを読み込んでいます...</p>
+        </div>
+      </section>
+
+      <section class="panel subpage shorts-page" id="shorts-page" hidden>
+        <div class="subpage-header">
+          <button id="close-shorts-btn" class="back-btn" type="button">← 献立作成に戻る</button>
+          <span class="subpage-kicker">RECIPE SHORTS</span>
+        </div>
+        <div class="shorts-heading">
+          <p class="health-kicker">WATCH &amp; COOK</p>
+          <h2>ショート動画</h2>
+          <p>料理のアイデアを縦にスクロールしてチェックできます。</p>
+        </div>
+        <div class="shorts-feed" role="region" aria-label="ショート動画フィード" tabindex="0">
+          <article class="short-video-card" aria-label="ショート動画を読み込めません">
+            <div class="short-video-placeholder">
+              <span class="short-video-icon" aria-hidden="true">▶</span>
+              <strong>動画を読み込めません</strong>
+              <span>現在、動画情報を取得できません。</span>
+            </div>
+            <div class="short-video-caption">
+              <span class="short-video-avatar" aria-hidden="true">🍳</span>
+              <p><strong>レシピタ</strong><span>動画が利用できるようになると、ここに表示されます。</span></p>
+            </div>
+          </article>
         </div>
       </section>
 

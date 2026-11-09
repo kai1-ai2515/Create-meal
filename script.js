@@ -7,6 +7,9 @@ const closeBookmarksButton = document.getElementById('close-bookmarks-btn');
 const bookmarkCount = document.getElementById('bookmark-count');
 const plannerView = document.querySelector('.content');
 const bookmarksPage = document.getElementById('bookmarks-page');
+const shortsPage = document.getElementById('shorts-page');
+const openShortsButton = document.getElementById('open-shorts-btn');
+const closeShortsButton = document.getElementById('close-shorts-btn');
 const recipeSearchInput = document.getElementById('recipe-search-input');
 const recipeSearchResults = document.getElementById('recipe-search-results');
 const recipeSearchCount = document.getElementById('recipe-search-count');
@@ -2186,6 +2189,7 @@ function hideSubpages() {
   shoppingPage.hidden = true;
   historyPage.hidden = true;
   announcementsPage.hidden = true;
+  shortsPage.hidden = true;
   mealDetailPage.hidden = true;
   fridgePage.hidden = true;
   healthLogPage.hidden = true;
@@ -2236,6 +2240,18 @@ openBookmarksButton.addEventListener('click', () => {
 
 openAnnouncementsButton.addEventListener('click', openAnnouncementsPage);
 closeAnnouncementsButton.addEventListener('click', showPlanner);
+
+openShortsButton.addEventListener('click', () => {
+  hideSubpages();
+  plannerView.hidden = true;
+  shortsPage.hidden = false;
+  closeShortsButton.focus();
+});
+
+closeShortsButton.addEventListener('click', () => {
+  showPlanner();
+  openShortsButton.focus();
+});
 
 closeBookmarksButton.addEventListener('click', () => {
   showPlanner();
