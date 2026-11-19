@@ -16,6 +16,22 @@ const bookmarksPage = document.getElementById('bookmarks-page');
 const shortsPage = document.getElementById('shorts-page');
 const openShortsButton = document.getElementById('open-shorts-btn');
 const closeShortsButton = document.getElementById('close-shorts-btn');
+const shortsFeed = document.querySelector('.shorts-feed');
+const shortsUploadForm = document.getElementById('shorts-upload-form');
+const shortsVideoInput = document.getElementById('shorts-video-file');
+const shortsCaptionInput = document.getElementById('shorts-video-caption');
+const shortsUploadButton = document.getElementById('shorts-upload-btn');
+const shortsUploadMessage = document.getElementById('shorts-upload-message');
+const shortVideoBucket = 'cooking-videos';
+const maxShortVideoSize = 50 * 1024 * 1024;
+const maxShortVideoDuration = 180;
+const shortVideoMimeTypes = new Map([
+  ['mp4', 'video/mp4'],
+  ['mov', 'video/quicktime'],
+  ['m4v', 'video/x-m4v'],
+  ['webm', 'video/webm'],
+  ['3gp', 'video/3gpp']
+]);
 const recipeSearchInput = document.getElementById('recipe-search-input');
 const recipeSearchResults = document.getElementById('recipe-search-results');
 const recipeSearchCount = document.getElementById('recipe-search-count');
@@ -464,6 +480,234 @@ function handleSupermarketSubmit(event) {
   supermarketMessage.textContent = pins.length >= 3
     ? '3件登録しました。入れ替える場合は、登録済みのお店を削除してください。'
     : 'お店をピン留めしました。';
+}
+
+function getShortVideoFileInfo(file) {
+  const extension = file.name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || '';
+  const fileMimeType = file.type.split(';')[0].trim().toLowerCase();
+  const knownMimeTypes = new Set(shortVideoMimeTypes.values());
+  const mimeType = knownMimeTypes.has(fileMimeType)
+    ? fileMimeType
+    : shortVideoMimeTypes.get(extension);
+
+  if (!mimeType || (fileMimeType.startsWith('video/') && !knownMimeTypes.has(fileMimeType))) {
+    throw new Error('MP4、MOV、M4V、WebM、3GP形式の動画を選択してください。');
+  }
+
+  const safeExtension = [...shortVideoMimeTypes].find(([, value]) => value === mimeType)?.[0];
+  return { mimeType, extension: safeExtension };
+}
+
+function getShortVideoDuration(file) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const objectUrl = URL.createObjectURL(file);
+    const cleanup = () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('error', handleMetadataError);
+      video.removeAttribute('src');
+      URL.revokeObjectURL(objectUrl);
+    };
+    const handleLoadedMetadata = () => {
+      const duration = video.duration;
+      cleanup();
+      resolve(duration);
+    };
+    const handleMetadataError = () => {
+      cleanup();
+      reject(new Error('動画を読み取れませんでした。別の動画を選択してください。'));
+    };
+
+    video.preload = 'metadata';
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('error', handleMetadataError);
+    video.src = objectUrl;
+  });
+}
+
+function getShortVideoErrorMessage(error) {
+  const message = String(error?.message || '');
+  if (Number(error?.statusCode || error?.status) === 413 || /payload too large|file size limit/i.test(message)) {
+    return '動画の容量上限を超えています。50MB以下の動画を選択してください。';
+  }
+  if (/bucket not found|short_videos.*(not found|does not exist|schema cache|could not find)|row-level security/i.test(message)) {
+    return '動画投稿のSupabase設定が未完了です。管理者にお問い合わせください。';
+  }
+  return message || '動画を処理できませんでした。通信状態を確認して、もう一度お試しください。';
+}
+
+function formatShortVideoDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? '投稿日時不明'
+    : date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+}
+
+function renderShortVideos(videos) {
+  if (!videos.length) {
+    shortsFeed.innerHTML = '<p class="empty-message shorts-empty">動画はまだありません。最初の動画を投稿しましょう。</p>';
+    return;
+  }
+
+  const user = getCurrentUser();
+  shortsFeed.innerHTML = videos.map((video) => {
+    const publicUrl = supabaseClient.storage.from(shortVideoBucket).getPublicUrl(video.storage_path).data.publicUrl;
+    const caption = String(video.caption || '').trim() || '料理のアイデアをシェア';
+    const deleteButton = user?.id === video.user_id
+      ? `<button class="short-video-delete-btn" type="button" data-delete-short-video="${escapeHtml(video.id)}">削除</button>`
+      : '';
+
+    return `
+      <article class="short-video-card">
+        <video class="short-video-player" src="${escapeHtml(publicUrl)}" controls playsinline preload="metadata" aria-label="${escapeHtml(caption)}"></video>
+        <div class="short-video-caption">
+          <span class="short-video-avatar" aria-hidden="true">🍳</span>
+          <p><strong>${escapeHtml(caption)}</strong><span>${escapeHtml(formatShortVideoDate(video.created_at))}</span></p>
+          ${deleteButton}
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+async function loadShortVideos() {
+  if (!supabaseClient) {
+    shortsFeed.innerHTML = '<p class="empty-message">動画を読み込めません。時間をおいて再度お試しください。</p>';
+    return;
+  }
+
+  shortsFeed.setAttribute('aria-busy', 'true');
+  try {
+    const { data, error } = await supabaseClient
+      .from('short_videos')
+      .select('id, user_id, storage_path, caption, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    renderShortVideos(data || []);
+  } catch (error) {
+    console.error('ショート動画を読み込めませんでした', error);
+    shortsFeed.innerHTML = `<p class="empty-message">${escapeHtml(getShortVideoErrorMessage(error))}</p>`;
+  } finally {
+    shortsFeed.setAttribute('aria-busy', 'false');
+  }
+}
+
+async function handleShortVideoUpload(event) {
+  event.preventDefault();
+  const user = getCurrentUser();
+  const file = shortsVideoInput.files?.[0];
+
+  if (!user || user.role !== 'user' || !supabaseClient) {
+    shortsUploadMessage.textContent = '動画を投稿するには一般ユーザーでログインしてください。';
+    return;
+  }
+  if (!file) {
+    shortsUploadMessage.textContent = '投稿する動画を選択してください。';
+    return;
+  }
+  if (file.size > maxShortVideoSize) {
+    shortsUploadMessage.textContent = '動画は50MB以下にしてください。';
+    return;
+  }
+
+  shortsUploadButton.disabled = true;
+  shortsUploadMessage.textContent = '動画を確認しています...';
+  try {
+    const { mimeType, extension } = getShortVideoFileInfo(file);
+    const duration = await getShortVideoDuration(file);
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error('動画の長さを確認できませんでした。別の動画を選択してください。');
+    }
+    if (duration > maxShortVideoDuration) {
+      throw new Error('動画は3分以内にしてください。');
+    }
+
+    shortsUploadMessage.textContent = '動画をアップロードしています...';
+    const storagePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+    const { data: uploadedFile, error: uploadError } = await supabaseClient.storage
+      .from(shortVideoBucket)
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        contentType: mimeType,
+        upsert: false
+      });
+    if (uploadError) throw uploadError;
+
+    const { error: insertError } = await supabaseClient
+      .from('short_videos')
+      .insert({
+        user_id: user.id,
+        storage_path: uploadedFile.path,
+        caption: shortsCaptionInput.value.trim()
+      });
+    if (insertError) {
+      const { error: cleanupError } = await supabaseClient.storage.from(shortVideoBucket).remove([uploadedFile.path]);
+      if (cleanupError) {
+        console.error('投稿に失敗した動画ファイルを削除できませんでした', cleanupError);
+        throw new Error('投稿に失敗し、アップロード済み動画の削除にも失敗しました。管理者にお問い合わせください。');
+      }
+      throw insertError;
+    }
+
+    shortsUploadForm.reset();
+    shortsUploadMessage.textContent = '投稿しました。動画ページで公開されています。';
+    await loadShortVideos();
+  } catch (error) {
+    console.error('ショート動画を投稿できませんでした', error);
+    shortsUploadMessage.textContent = getShortVideoErrorMessage(error);
+  } finally {
+    shortsUploadButton.disabled = false;
+  }
+}
+
+async function handleShortVideoDelete(event) {
+  const button = event.target.closest('[data-delete-short-video]');
+  if (!button) return;
+
+  const user = getCurrentUser();
+  if (!user || user.role !== 'user' || !supabaseClient) {
+    shortsUploadMessage.textContent = '自分の投稿を削除するには投稿したアカウントでログインしてください。';
+    return;
+  }
+
+  button.disabled = true;
+  shortsUploadMessage.textContent = '動画を削除しています...';
+  try {
+    const { data: video, error: findError } = await supabaseClient
+      .from('short_videos')
+      .select('id, storage_path')
+      .eq('id', button.dataset.deleteShortVideo)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (findError) throw findError;
+    if (!video) throw new Error('削除できる投稿が見つかりません。');
+
+    const { error: deleteRowError } = await supabaseClient
+      .from('short_videos')
+      .delete()
+      .eq('id', video.id)
+      .eq('user_id', user.id);
+    if (deleteRowError) throw deleteRowError;
+
+    const { error: deleteFileError } = await supabaseClient.storage.from(shortVideoBucket).remove([video.storage_path]);
+    if (deleteFileError) {
+      console.error('投稿を一覧から削除しましたが、保存ファイルを削除できませんでした', deleteFileError);
+      throw new Error('投稿を一覧から削除しましたが、動画ファイルの削除に失敗しました。管理者にお問い合わせください。');
+    }
+
+    shortsUploadMessage.textContent = '動画を削除しました。';
+    await loadShortVideos();
+  } catch (error) {
+    console.error('ショート動画を削除できませんでした', error);
+    shortsUploadMessage.textContent = getShortVideoErrorMessage(error);
+  }
 }
 
 async function handleAuthSubmit(event) {
@@ -2216,6 +2460,7 @@ openShortsButton.addEventListener('click', () => {
   hideSubpages();
   plannerView.hidden = true;
   shortsPage.hidden = false;
+  void loadShortVideos();
   closeShortsButton.focus();
 });
 
@@ -2223,6 +2468,8 @@ closeShortsButton.addEventListener('click', () => {
   showPlanner();
   openShortsButton.focus();
 });
+shortsUploadForm.addEventListener('submit', handleShortVideoUpload);
+shortsFeed.addEventListener('click', handleShortVideoDelete);
 
 closeBookmarksButton.addEventListener('click', () => {
   showPlanner();
