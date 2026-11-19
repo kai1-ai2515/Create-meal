@@ -11,13 +11,14 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-async function requestAnnouncements(
+async function requestRestTable(
   url: string,
   serviceRoleKey: string,
+  table: "announcements" | "short_video_comments",
   path: string,
   init: RequestInit = {},
 ) {
-  const response = await fetch(`${url}/rest/v1/announcements${path}`, {
+  const response = await fetch(`${url}/rest/v1/${table}${path}`, {
     ...init,
     headers: {
       apikey: serviceRoleKey,
@@ -32,11 +33,11 @@ async function requestAnnouncements(
     try {
       data = JSON.parse(responseBody);
     } catch {
-      throw new Error("Announcement service returned an invalid response.");
+      throw new Error("Supabase data service returned an invalid response.");
     }
   }
   if (!response.ok) {
-    throw new Error(`Announcement service returned HTTP ${response.status}.`);
+    throw new Error(`Supabase data service returned HTTP ${response.status}.`);
   }
   return data;
 }
@@ -160,8 +161,8 @@ Deno.serve(async (request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("Supabase server credentials are missing.");
-    return jsonResponse({ error: "Announcement service is not configured." }, 503);
+    console.error("Developer service credentials are missing.");
+    return jsonResponse({ error: "Developer service is not configured." }, 503);
   }
 
   try {
@@ -176,9 +177,10 @@ Deno.serve(async (request) => {
         order: "published_at.desc",
         limit: "100",
       });
-      const data = await requestAnnouncements(
+      const data = await requestRestTable(
         supabaseUrl,
         serviceRoleKey,
+        "announcements",
         `?${query}`,
       );
       return jsonResponse({ announcements: data || [] });
@@ -198,9 +200,10 @@ Deno.serve(async (request) => {
         return jsonResponse({ error: "Title or message has an invalid length." }, 400);
       }
 
-      const data = await requestAnnouncements(
+      const data = await requestRestTable(
         supabaseUrl,
         serviceRoleKey,
+        "announcements",
         "?select=id,title,body,published_at",
         {
           method: "POST",
@@ -213,15 +216,36 @@ Deno.serve(async (request) => {
       return jsonResponse({ announcement }, 201);
     }
 
+    if (request.headers.get("x-developer-resource") === "comments") {
+      const commentId = typeof payload.id === "string" ? payload.id : "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(commentId)) {
+        return jsonResponse({ error: "Invalid comment ID." }, 400);
+      }
+
+      const query = new URLSearchParams({ id: `eq.${commentId}`, select: "id" });
+      const data = await requestRestTable(
+        supabaseUrl,
+        serviceRoleKey,
+        "short_video_comments",
+        `?${query}`,
+        { method: "DELETE", headers: { Prefer: "return=representation" } },
+      );
+      if (!Array.isArray(data) || data.length === 0) {
+        return jsonResponse({ error: "Comment not found." }, 404);
+      }
+      return jsonResponse({ deleted: true });
+    }
+
     const id = typeof payload.id === "string" ? payload.id : "";
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       return jsonResponse({ error: "Invalid announcement ID." }, 400);
     }
 
     const query = new URLSearchParams({ id: `eq.${id}`, select: "id" });
-    const data = await requestAnnouncements(
+    const data = await requestRestTable(
       supabaseUrl,
       serviceRoleKey,
+      "announcements",
       `?${query}`,
       { method: "DELETE", headers: { Prefer: "return=representation" } },
     );
@@ -230,7 +254,7 @@ Deno.serve(async (request) => {
     }
     return jsonResponse({ deleted: true });
   } catch (error) {
-    console.error("Announcement operation failed:", error);
-    return jsonResponse({ error: "Announcement operation failed." }, 500);
+    console.error("Developer operation failed:", error);
+    return jsonResponse({ error: "Developer operation failed." }, 500);
   }
 });

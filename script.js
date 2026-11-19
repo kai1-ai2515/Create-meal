@@ -14,15 +14,24 @@ const supermarketCount = document.getElementById('supermarket-count');
 const supermarketMessage = document.getElementById('supermarket-message');
 const bookmarksPage = document.getElementById('bookmarks-page');
 const shortsPage = document.getElementById('shorts-page');
+const shortsUploadPage = document.getElementById('shorts-upload-page');
 const openShortsButton = document.getElementById('open-shorts-btn');
 const closeShortsButton = document.getElementById('close-shorts-btn');
-const shortsFeed = document.querySelector('.shorts-feed');
+const openShortsUploadButton = document.getElementById('open-shorts-upload-btn');
+const closeShortsUploadButton = document.getElementById('close-shorts-upload-btn');
+const shortsFeed = document.getElementById('shorts-feed');
+const publicShortsView = document.getElementById('public-shorts-view');
+const publicShortsFeed = document.getElementById('public-shorts-feed');
+const openPublicShortsButton = document.getElementById('open-public-shorts-btn');
+const closePublicShortsButton = document.getElementById('close-public-shorts-btn');
+const openPublicShortsUploadButton = document.getElementById('open-public-shorts-upload-btn');
 const shortsUploadForm = document.getElementById('shorts-upload-form');
 const shortsVideoInput = document.getElementById('shorts-video-file');
 const shortsCaptionInput = document.getElementById('shorts-video-caption');
 const shortsUploadButton = document.getElementById('shorts-upload-btn');
 const shortsUploadMessage = document.getElementById('shorts-upload-message');
 const shortsUploadProgress = document.getElementById('shorts-upload-progress');
+const shortsViewerMessage = document.getElementById('shorts-viewer-message');
 const shortVideoBucket = 'cooking-videos';
 const maxShortVideoSize = 50 * 1024 * 1024;
 const maxShortVideoDuration = 180;
@@ -365,6 +374,7 @@ function setAuthMode(nextMode) {
 function showAuthView(message = '') {
   authMessage.textContent = message;
   authView.hidden = false;
+  publicShortsView.hidden = true;
   appShell.hidden = true;
   if (authMode === 'developer') authPasswordInput.focus();
   else authEmailInput.focus();
@@ -372,6 +382,7 @@ function showAuthView(message = '') {
 
 function showAppView() {
   syncCurrentUserBadge();
+  publicShortsView.hidden = true;
   const isDeveloper = getCurrentUser()?.role === 'developer';
   mypageDesktopLabel.textContent = isDeveloper ? '開発者コンソール' : 'マイページ';
   mypageButton.setAttribute('aria-label', isDeveloper ? '開発者コンソールを開く' : 'アカウントを開く');
@@ -524,16 +535,20 @@ function getShortVideoDuration(file) {
   });
 }
 
-function getShortVideoErrorMessage(error) {
+function getShortVideoErrorMessage(error, resource = 'video') {
   const message = String(error?.message || '');
   if (Number(error?.statusCode || error?.status) === 413 || /\b413\b|payload too large|file size limit/i.test(message)) {
     return '動画の容量上限を超えています。50MB以下の動画を選択してください。';
   }
-  if (/bucket not found|short_videos.*(not found|does not exist|schema cache|could not find)|row-level security/i.test(message)) {
-    return '動画投稿のSupabase設定が未完了です。管理者にお問い合わせください。';
+  if (/bucket not found|short_videos.*(not found|does not exist|schema cache|could not find)|short_video_comments.*(not found|does not exist|schema cache|could not find)|row-level security/i.test(message)) {
+    return resource === 'comment'
+      ? 'コメント機能のSupabase設定が未完了です。管理者にお問い合わせください。'
+      : '動画投稿のSupabase設定が未完了です。管理者にお問い合わせください。';
   }
   if (/failed to fetch|network|connection|tus: unexpected response/i.test(message)) {
-    return 'アップロードが中断しました。通信を確認し、同じ動画を選んで再試行してください。続きから再開できる場合があります。';
+    return resource === 'comment'
+      ? 'コメントを通信できませんでした。通信状態を確認して、もう一度お試しください。'
+      : 'アップロードが中断しました。通信を確認し、同じ動画を選んで再試行してください。続きから再開できる場合があります。';
   }
   return message || '動画を処理できませんでした。通信状態を確認して、もう一度お試しください。';
 }
@@ -551,40 +566,103 @@ function formatShortVideoDate(value) {
     });
 }
 
-function renderShortVideos(videos) {
+const shortVideoObservers = new WeakMap();
+
+function renderShortVideos(videos, feed) {
   if (!videos.length) {
-    shortsFeed.innerHTML = '<p class="empty-message shorts-empty">動画はまだありません。最初の動画を投稿しましょう。</p>';
+    feed.innerHTML = '<p class="empty-message shorts-empty">動画はまだありません。右上の＋から最初の動画を投稿できます。</p>';
     return;
   }
 
   const user = getCurrentUser();
-  shortsFeed.innerHTML = videos.map((video) => {
+  feed.innerHTML = videos.map((video) => {
     const publicUrl = supabaseClient.storage.from(shortVideoBucket).getPublicUrl(video.storage_path).data.publicUrl;
     const caption = String(video.caption || '').trim() || '料理のアイデアをシェア';
     const deleteButton = user?.id === video.user_id
       ? `<button class="short-video-delete-btn" type="button" data-delete-short-video="${escapeHtml(video.id)}">削除</button>`
       : '';
+    const commentComposer = user?.role === 'user'
+      ? `<form class="short-video-comment-form" data-short-video-comment-form data-short-video-id="${escapeHtml(video.id)}">
+           <label class="visually-hidden" for="short-video-comment-${escapeHtml(video.id)}">コメントを入力</label>
+           <textarea id="short-video-comment-${escapeHtml(video.id)}" maxlength="500" rows="2" placeholder="コメントを書く..." required></textarea>
+           <button type="submit">送信</button>
+         </form>`
+      : user?.role === 'developer'
+        ? '<p class="short-video-comment-login">開発者アカウントではコメントを投稿できません。</p>'
+        : '<button class="short-video-comment-login" type="button" data-short-video-comment-login>ログインしてコメント</button>';
 
     return `
-      <article class="short-video-card">
-        <video class="short-video-player" src="${escapeHtml(publicUrl)}" controls playsinline preload="metadata" aria-label="${escapeHtml(caption)}"></video>
+      <article class="short-video-card" data-short-video-id="${escapeHtml(video.id)}">
+        <video class="short-video-player" src="${escapeHtml(publicUrl)}" controls playsinline muted loop preload="metadata" aria-label="${escapeHtml(caption)}"></video>
+        <div class="short-video-action-rail">
+          <div class="short-video-volume-control">
+            <button type="button" class="short-video-mute-btn" data-short-video-mute aria-label="音声をオンにする" aria-pressed="false">🔇</button>
+            <input type="range" min="0" max="1" step="0.05" value="0.7" data-short-video-volume aria-label="音量" />
+          </div>
+          <button type="button" class="short-video-comments-toggle" data-short-video-comments-toggle aria-expanded="false" aria-label="コメントを表示">💬</button>
+        </div>
         <div class="short-video-caption">
           <span class="short-video-avatar" aria-hidden="true">🍳</span>
           <p><strong>${escapeHtml(caption)}</strong><span>${escapeHtml(formatShortVideoDate(video.created_at))}</span></p>
           ${deleteButton}
         </div>
+        <section class="short-video-comments" data-short-video-comments hidden aria-label="動画へのコメント">
+          <header class="short-video-comments-header">
+            <strong>コメント</strong>
+            <button type="button" data-short-video-comments-close aria-label="コメントを閉じる">×</button>
+          </header>
+          <div class="short-video-comments-list" data-short-video-comments-list aria-live="polite">
+            <p>コメントを読み込んでいます...</p>
+          </div>
+          ${commentComposer}
+        </section>
       </article>
     `;
   }).join('');
+
+  feed.querySelectorAll('.short-video-player').forEach((video) => {
+    video.volume = 0.7;
+  });
+  observeShortVideos(feed);
 }
 
-async function loadShortVideos() {
+function observeShortVideos(feed) {
+  shortVideoObservers.get(feed)?.disconnect();
+  if (!('IntersectionObserver' in window)) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target.querySelector('.short-video-player');
+      if (!video) return;
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
+        const playRequest = video.play();
+        if (playRequest) {
+          playRequest.catch((error) => {
+            console.warn('動画を自動再生できませんでした。再生ボタンをご利用ください。', error);
+          });
+        }
+      } else {
+        video.pause();
+      }
+    });
+  }, { root: feed, threshold: [0, 0.65] });
+
+  shortVideoObservers.set(feed, observer);
+  feed.querySelectorAll('.short-video-card').forEach((card) => observer.observe(card));
+}
+
+function pauseShortVideos(feed) {
+  shortVideoObservers.get(feed)?.disconnect();
+  feed.querySelectorAll('.short-video-player').forEach((video) => video.pause());
+}
+
+async function loadShortVideos(feed = shortsFeed) {
   if (!supabaseClient) {
-    shortsFeed.innerHTML = '<p class="empty-message">動画を読み込めません。時間をおいて再度お試しください。</p>';
+    feed.innerHTML = '<p class="empty-message">動画を読み込めません。時間をおいて再度お試しください。</p>';
     return;
   }
 
-  shortsFeed.setAttribute('aria-busy', 'true');
+  feed.setAttribute('aria-busy', 'true');
   try {
     const { data, error } = await supabaseClient
       .from('short_videos')
@@ -592,13 +670,213 @@ async function loadShortVideos() {
       .order('created_at', { ascending: false })
       .limit(50);
     if (error) throw error;
-    renderShortVideos(data || []);
+    renderShortVideos(data || [], feed);
   } catch (error) {
     console.error('ショート動画を読み込めませんでした', error);
-    shortsFeed.innerHTML = `<p class="empty-message">${escapeHtml(getShortVideoErrorMessage(error))}</p>`;
+    feed.innerHTML = `<p class="empty-message">${escapeHtml(getShortVideoErrorMessage(error))}</p>`;
   } finally {
-    shortsFeed.setAttribute('aria-busy', 'false');
+    feed.setAttribute('aria-busy', 'false');
   }
+}
+
+function renderShortVideoComments(list, comments) {
+  if (!comments.length) {
+    list.innerHTML = '<p class="short-video-no-comments">まだコメントはありません。</p>';
+    return;
+  }
+
+  const user = getCurrentUser();
+  list.innerHTML = comments.map((comment) => {
+    const canDelete = user?.role === 'developer' || user?.id === comment.user_id;
+    const deleteButton = canDelete
+      ? `<button type="button" data-delete-short-video-comment="${escapeHtml(comment.id)}" aria-label="このコメントを削除">削除</button>`
+      : '';
+    return `
+      <article class="short-video-comment">
+        <p><strong>${user?.id === comment.user_id ? 'あなた' : '利用者'}</strong><time datetime="${escapeHtml(comment.created_at)}">${escapeHtml(formatShortVideoDate(comment.created_at))}</time></p>
+        <span>${escapeHtml(comment.content)}</span>
+        ${deleteButton}
+      </article>
+    `;
+  }).join('');
+}
+
+async function loadShortVideoComments(card) {
+  const list = card.querySelector('[data-short-video-comments-list]');
+  list.textContent = 'コメントを読み込んでいます...';
+  const { data, error } = await supabaseClient
+    .from('short_video_comments')
+    .select('id, user_id, content, created_at')
+    .eq('video_id', card.dataset.shortVideoId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  renderShortVideoComments(list, (data || []).reverse());
+  card.dataset.commentsLoaded = 'true';
+}
+
+function openAuthForShortVideoComment() {
+  pauseShortVideos(publicShortsFeed);
+  publicShortsView.hidden = true;
+  authView.hidden = false;
+  authMessage.textContent = 'コメントを投稿するにはログインしてください。';
+  authEmailInput.focus();
+}
+
+async function handleShortsFeedClick(event) {
+  const target = event.target.closest('button');
+  if (!target) return;
+  const card = target.closest('.short-video-card');
+  if (!card) return;
+
+  if (target.matches('[data-short-video-mute]')) {
+    const video = card.querySelector('.short-video-player');
+    video.muted = !video.muted;
+    target.textContent = video.muted ? '🔇' : '🔊';
+    target.setAttribute('aria-label', video.muted ? '音声をオンにする' : '音声をミュート');
+    target.setAttribute('aria-pressed', String(!video.muted));
+    return;
+  }
+
+  if (target.matches('[data-short-video-comments-toggle]')) {
+    const panel = card.querySelector('[data-short-video-comments]');
+    const shouldOpen = panel.hidden;
+    panel.hidden = !shouldOpen;
+    target.setAttribute('aria-expanded', String(shouldOpen));
+    target.setAttribute('aria-label', shouldOpen ? 'コメントを閉じる' : 'コメントを表示');
+    if (!panel.hidden && card.dataset.commentsLoaded !== 'true') {
+      try {
+        await loadShortVideoComments(card);
+      } catch (error) {
+        console.error('動画コメントを読み込めませんでした', error);
+        card.querySelector('[data-short-video-comments-list]').textContent = getShortVideoErrorMessage(error, 'comment');
+      }
+    }
+    return;
+  }
+
+  if (target.matches('[data-short-video-comments-close]')) {
+    card.querySelector('[data-short-video-comments]').hidden = true;
+    const toggle = card.querySelector('[data-short-video-comments-toggle]');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'コメントを表示');
+    return;
+  }
+
+  if (target.matches('[data-short-video-comment-login]')) {
+    openAuthForShortVideoComment();
+    return;
+  }
+
+  const commentId = target.dataset.deleteShortVideoComment;
+  if (!commentId) return;
+  const user = getCurrentUser();
+  if (!user || !window.confirm('このコメントを削除しますか？')) return;
+
+  target.disabled = true;
+  try {
+    if (user.role === 'developer') {
+      const developerPassword = sessionStorage.getItem(developerPasswordStorageKey);
+      if (!developerPassword) throw new Error('開発者ログインの有効期限が切れました。再ログインしてください。');
+      const { error } = await supabaseClient.functions.invoke('developer-announcements', {
+        method: 'DELETE',
+        headers: {
+          'x-developer-password': developerPassword,
+          'x-developer-resource': 'comments'
+        },
+        body: { id: commentId }
+      });
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabaseClient
+        .from('short_video_comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', user.id)
+        .select('id')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error('削除できるコメントが見つかりません。');
+    }
+  } catch (error) {
+    console.error('動画コメントを削除できませんでした', error);
+    card.querySelector('[data-short-video-comments-list]').textContent = getShortVideoErrorMessage(error, 'comment');
+    target.disabled = false;
+    return;
+  }
+
+  card.dataset.commentsLoaded = '';
+  try {
+    await loadShortVideoComments(card);
+  } catch (error) {
+    console.error('コメント削除後に一覧を更新できませんでした', error);
+    card.querySelector('[data-short-video-comments-list]').textContent = 'コメントを削除しましたが、一覧を更新できませんでした。もう一度開いてください。';
+    target.disabled = false;
+  }
+}
+
+function handleShortsFeedInput(event) {
+  const slider = event.target.closest('[data-short-video-volume]');
+  if (!slider) return;
+  const card = slider.closest('.short-video-card');
+  const video = card?.querySelector('.short-video-player');
+  const muteButton = card?.querySelector('[data-short-video-mute]');
+  if (!video || !muteButton) return;
+
+  video.volume = Number(slider.value);
+  video.muted = video.volume === 0;
+  muteButton.textContent = video.muted ? '🔇' : '🔊';
+  muteButton.setAttribute('aria-label', video.muted ? '音声をオンにする' : '音声をミュート');
+  muteButton.setAttribute('aria-pressed', String(!video.muted));
+}
+
+async function handleShortVideoCommentSubmit(event) {
+  const commentForm = event.target.closest('[data-short-video-comment-form]');
+  if (!commentForm) return;
+  event.preventDefault();
+
+  const user = getCurrentUser();
+  if (!user || user.role !== 'user') {
+    openAuthForShortVideoComment();
+    return;
+  }
+
+  const input = commentForm.querySelector('textarea');
+  const content = input.value.trim();
+  if (!content || content.length > 500) {
+    input.setCustomValidity('コメントを入力してください。');
+    input.reportValidity();
+    input.setCustomValidity('');
+    return;
+  }
+  const submitButton = commentForm.querySelector('button[type="submit"]');
+  const card = commentForm.closest('.short-video-card');
+  submitButton.disabled = true;
+  try {
+    const { error } = await supabaseClient
+      .from('short_video_comments')
+      .insert({
+        video_id: commentForm.dataset.shortVideoId,
+        user_id: user.id,
+        content
+      });
+    if (error) throw error;
+    input.value = '';
+  } catch (error) {
+    console.error('動画コメントを投稿できませんでした', error);
+    card.querySelector('[data-short-video-comments-list]').textContent = getShortVideoErrorMessage(error, 'comment');
+    submitButton.disabled = false;
+      return;
+  }
+
+  card.dataset.commentsLoaded = '';
+  try {
+      await loadShortVideoComments(card);
+  } catch (error) {
+      console.error('コメント投稿後に一覧を更新できませんでした', error);
+      card.querySelector('[data-short-video-comments-list]').textContent = 'コメントを投稿しましたが、一覧を更新できませんでした。もう一度開いてください。';
+  }
+  submitButton.disabled = false;
 }
 
 async function uploadShortVideoResumable(file, storagePath, mimeType, userId, onProgress) {
@@ -737,12 +1015,12 @@ async function handleShortVideoDelete(event) {
 
   const user = getCurrentUser();
   if (!user || user.role !== 'user' || !supabaseClient) {
-    shortsUploadMessage.textContent = '自分の投稿を削除するには投稿したアカウントでログインしてください。';
+    shortsViewerMessage.textContent = '自分の投稿を削除するには投稿したアカウントでログインしてください。';
     return;
   }
 
   button.disabled = true;
-  shortsUploadMessage.textContent = '動画を削除しています...';
+  shortsViewerMessage.textContent = '動画を削除しています...';
   try {
     const { data: video, error: findError } = await supabaseClient
       .from('short_videos')
@@ -766,11 +1044,11 @@ async function handleShortVideoDelete(event) {
       throw new Error('投稿を一覧から削除しましたが、動画ファイルの削除に失敗しました。管理者にお問い合わせください。');
     }
 
-    shortsUploadMessage.textContent = '動画を削除しました。';
+    shortsViewerMessage.textContent = '動画を削除しました。';
     await loadShortVideos();
   } catch (error) {
     console.error('ショート動画を削除できませんでした', error);
-    shortsUploadMessage.textContent = getShortVideoErrorMessage(error);
+    shortsViewerMessage.textContent = getShortVideoErrorMessage(error);
   }
 }
 
@@ -2469,6 +2747,7 @@ function hideSubpages() {
   historyPage.hidden = true;
   announcementsPage.hidden = true;
   shortsPage.hidden = true;
+  shortsUploadPage.hidden = true;
   mealDetailPage.hidden = true;
   fridgePage.hidden = true;
   healthLogPage.hidden = true;
@@ -2524,16 +2803,61 @@ openShortsButton.addEventListener('click', () => {
   hideSubpages();
   plannerView.hidden = true;
   shortsPage.hidden = false;
+  openShortsUploadButton.hidden = getCurrentUser()?.role !== 'user';
+  shortsViewerMessage.textContent = '';
   void loadShortVideos();
   closeShortsButton.focus();
 });
 
 closeShortsButton.addEventListener('click', () => {
+  pauseShortVideos(shortsFeed);
   showPlanner();
   openShortsButton.focus();
 });
+
+openShortsUploadButton.addEventListener('click', () => {
+  pauseShortVideos(shortsFeed);
+  shortsPage.hidden = true;
+  shortsUploadPage.hidden = false;
+  closeShortsUploadButton.focus();
+});
+
+closeShortsUploadButton.addEventListener('click', () => {
+  shortsUploadPage.hidden = true;
+  shortsPage.hidden = false;
+  observeShortVideos(shortsFeed);
+  openShortsUploadButton.focus();
+});
+
+openPublicShortsButton.addEventListener('click', () => {
+  authView.hidden = true;
+  publicShortsView.hidden = false;
+  void loadShortVideos(publicShortsFeed);
+  closePublicShortsButton.focus();
+});
+
+closePublicShortsButton.addEventListener('click', () => {
+  pauseShortVideos(publicShortsFeed);
+  publicShortsView.hidden = true;
+  authView.hidden = false;
+  openPublicShortsButton.focus();
+});
+
+openPublicShortsUploadButton.addEventListener('click', () => {
+  pauseShortVideos(publicShortsFeed);
+  publicShortsView.hidden = true;
+  authView.hidden = false;
+  authMessage.textContent = '動画を投稿するには一般ユーザーでログインしてください。';
+  authEmailInput.focus();
+});
+
 shortsUploadForm.addEventListener('submit', handleShortVideoUpload);
-shortsFeed.addEventListener('click', handleShortVideoDelete);
+for (const feed of [shortsFeed, publicShortsFeed]) {
+  feed.addEventListener('click', handleShortVideoDelete);
+  feed.addEventListener('click', handleShortsFeedClick);
+  feed.addEventListener('input', handleShortsFeedInput);
+  feed.addEventListener('submit', handleShortVideoCommentSubmit);
+}
 
 closeBookmarksButton.addEventListener('click', () => {
   showPlanner();

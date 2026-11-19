@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261119-account-icon-only" />
+    <link rel="stylesheet" href="styles.css?v=20261119-shorts-reels" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -51,9 +51,20 @@
 
           <p id="auth-message" class="auth-message" aria-live="polite"></p>
         </form>
-
+        <button id="open-public-shorts-btn" class="auth-public-shorts-btn" type="button">ショート動画を見る</button>
       </div>
     </div>
+
+    <section id="public-shorts-view" class="panel subpage shorts-page public-shorts-page" aria-label="公開ショート動画" hidden>
+      <header class="shorts-viewer-header">
+        <button id="close-public-shorts-btn" class="shorts-back-btn" type="button">← ログイン画面へ</button>
+        <span class="shorts-viewer-title">RECIPE SHORTS</span>
+        <button id="open-public-shorts-upload-btn" class="shorts-add-btn" type="button" aria-label="動画を投稿" title="動画を投稿">＋</button>
+      </header>
+      <div id="public-shorts-feed" class="shorts-feed" role="region" aria-label="ショート動画フィード" tabindex="0">
+        <p class="empty-message">動画を読み込んでいます...</p>
+      </div>
+    </section>
 
     <div class="app-shell" hidden>
       <p id="app-security-notice" class="app-security-notice" role="status" hidden></p>
@@ -336,35 +347,43 @@
         </div>
       </section>
 
-      <section class="panel subpage shorts-page" id="shorts-page" hidden>
+      <section class="panel subpage shorts-page" id="shorts-page" aria-label="ショート動画" hidden>
+        <header class="shorts-viewer-header">
+          <button id="close-shorts-btn" class="shorts-back-btn" type="button">← 献立に戻る</button>
+          <span class="shorts-viewer-title">RECIPE SHORTS</span>
+          <button id="open-shorts-upload-btn" class="shorts-add-btn" type="button" aria-label="動画を投稿" title="動画を投稿">＋</button>
+        </header>
+        <p id="shorts-viewer-message" class="shorts-viewer-message" aria-live="polite"></p>
+        <div id="shorts-feed" class="shorts-feed" role="region" aria-label="ショート動画フィード" tabindex="0">
+          <p class="empty-message">動画を読み込んでいます...</p>
+        </div>
+      </section>
+
+      <section class="panel subpage shorts-upload-page" id="shorts-upload-page" aria-labelledby="shorts-upload-heading" hidden>
         <div class="subpage-header">
-          <button id="close-shorts-btn" class="back-btn" type="button">← 献立作成に戻る</button>
+          <button id="close-shorts-upload-btn" class="back-btn" type="button">← 動画に戻る</button>
           <span class="subpage-kicker">RECIPE SHORTS</span>
         </div>
-        <div class="shorts-heading">
-          <p class="health-kicker">WATCH &amp; COOK</p>
-          <h2>ショート動画</h2>
-          <p>料理のアイデアを縦にスクロールしてチェックできます。</p>
-        </div>
-        <form id="shorts-upload-form" class="shorts-upload-form">
-          <label class="shorts-upload-file-label" for="shorts-video-file">
-            スマホの写真アプリ／ギャラリーから動画を選ぶ
-            <input id="shorts-video-file" type="file" accept="video/*" required />
-          </label>
-          <p class="shorts-upload-help">選んだ動画だけにアクセスします。写真ライブラリ全体への許可は不要です。</p>
-          <label class="shorts-upload-caption-label" for="shorts-video-caption">
-            ひとこと（任意）
-            <textarea id="shorts-video-caption" maxlength="300" rows="2" placeholder="料理のポイントなど"></textarea>
-          </label>
-          <p class="shorts-upload-note">50MB・3分以内。投稿するとすぐ全利用者に公開されます。通信が切れた場合は同じ動画を選び直すと続きから再開できます。</p>
-          <progress id="shorts-upload-progress" class="shorts-upload-progress" max="100" value="0" aria-label="動画アップロードの進捗" hidden></progress>
-          <div class="shorts-upload-actions">
-            <p id="shorts-upload-message" class="mypage-message" aria-live="polite"></p>
-            <button id="shorts-upload-btn" type="submit">動画を投稿</button>
-          </div>
-        </form>
-        <div class="shorts-feed" role="region" aria-label="ショート動画フィード" tabindex="0">
-          <p class="empty-message">動画を読み込んでいます...</p>
+        <div class="shorts-upload-content">
+          <h2 id="shorts-upload-heading">動画を投稿</h2>
+          <p class="subpage-description">スマートフォンの写真アプリ／ギャラリーから動画を選べます。</p>
+          <form id="shorts-upload-form" class="shorts-upload-form">
+            <label class="shorts-upload-file-label" for="shorts-video-file">
+              スマホの写真アプリ／ギャラリーから動画を選ぶ
+              <input id="shorts-video-file" type="file" accept="video/*" required />
+            </label>
+            <p class="shorts-upload-help">選んだ動画だけにアクセスします。写真ライブラリ全体への許可は不要です。</p>
+            <label class="shorts-upload-caption-label" for="shorts-video-caption">
+              ひとこと（任意）
+              <textarea id="shorts-video-caption" maxlength="300" rows="2" placeholder="料理のポイントなど"></textarea>
+            </label>
+            <p class="shorts-upload-note">50MB・3分以内。投稿するとすぐ全利用者に公開されます。通信が切れた場合は同じ動画を選び直すと続きから再開できます。</p>
+            <progress id="shorts-upload-progress" class="shorts-upload-progress" max="100" value="0" aria-label="動画アップロードの進捗" hidden></progress>
+            <div class="shorts-upload-actions">
+              <p id="shorts-upload-message" class="mypage-message" aria-live="polite"></p>
+              <button id="shorts-upload-btn" type="submit">動画を投稿</button>
+            </div>
+          </form>
         </div>
       </section>
 
@@ -681,6 +700,6 @@
     <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
     <script src="voc.js?v=20261119-mobile-account-console"></script>
     <script src="announcements.js?v=20261010-password-only-dev"></script>
-    <script src="script.js?v=20261119-account-icon-only"></script>
+    <script src="script.js?v=20261119-shorts-reels"></script>
   </body>
 </html>

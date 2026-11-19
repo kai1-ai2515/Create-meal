@@ -81,3 +81,41 @@ create policy "Users can delete their own cooking videos"
     bucket_id = 'cooking-videos'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+create table if not exists public.short_video_comments (
+  id uuid primary key default gen_random_uuid(),
+  video_id uuid not null references public.short_videos(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  content text not null check (char_length(btrim(content)) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists short_video_comments_video_created_at_idx
+  on public.short_video_comments (video_id, created_at desc);
+
+alter table public.short_video_comments enable row level security;
+
+revoke all on public.short_video_comments from anon, authenticated;
+grant select on public.short_video_comments to anon, authenticated;
+grant insert, delete on public.short_video_comments to authenticated;
+
+drop policy if exists "Anyone can view short video comments" on public.short_video_comments;
+create policy "Anyone can view short video comments"
+  on public.short_video_comments
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Users can add their own short video comments" on public.short_video_comments;
+create policy "Users can add their own short video comments"
+  on public.short_video_comments
+  for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their own short video comments" on public.short_video_comments;
+create policy "Users can delete their own short video comments"
+  on public.short_video_comments
+  for delete
+  to authenticated
+  using (auth.uid() = user_id);
