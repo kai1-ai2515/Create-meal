@@ -69,12 +69,9 @@ const authEmailInput = document.getElementById('auth-email');
 const authPasswordInput = document.getElementById('auth-password');
 const authPasswordLabel = document.getElementById('auth-password-label');
 const authSubmitButton = document.getElementById('auth-submit-btn');
-const authSwitchButton = document.getElementById('auth-switch-btn');
-const resetPasswordButton = document.getElementById('reset-password-btn');
-const passwordRecoveryForm = document.getElementById('password-recovery-form');
-const recoveryPasswordInput = document.getElementById('recovery-password');
-const recoveryPasswordConfirmInput = document.getElementById('recovery-password-confirm');
-const passwordRecoveryMessage = document.getElementById('password-recovery-message');
+const authModeSwitch = document.getElementById('auth-mode-switch');
+const authModeSigninButton = document.getElementById('auth-mode-signin-btn');
+const authModeSignupButton = document.getElementById('auth-mode-signup-btn');
 const devLoginButton = document.getElementById('dev-login-btn');
 const authBackButton = document.getElementById('auth-back-btn');
 const emailField = document.getElementById('email-field');
@@ -84,7 +81,7 @@ const currentUserName = document.getElementById('current-user-name');
 const mypageButton = document.getElementById('mypage-btn');
 const mypagePanel = document.getElementById('mypage-panel');
 const mypageForm = document.getElementById('mypage-form');
-const mypageEmailInput = document.getElementById('mypage-email');
+const mypageEmailDisplay = document.getElementById('mypage-email');
 const mypageCreatedAt = document.getElementById('mypage-created-at');
 const mypageCurrentPasswordInput = document.getElementById('mypage-current-password');
 const mypageNewPasswordInput = document.getElementById('mypage-new-password');
@@ -121,7 +118,6 @@ let currentUser = null;
 let vocCurrentView = 'inbox';
 let registeredUsers = [];
 let legacyPasswordCleanupFailed = false;
-let passwordRecoveryActive = false;
 
 function getSafeEmail(email) {
   return String(email || '').trim().toLowerCase();
@@ -132,25 +128,25 @@ function getAuthErrorMessage(error, mode) {
   const message = String(error?.message || '').toLowerCase();
   if (code.includes('email_send_rate_limit') || message.includes('email rate limit exceeded')) {
     return mode === 'signup'
-      ? '登録確認メールの送信上限に達しました。登録ボタンを繰り返し押さず、時間をおいてください。すでに登録済みの方はログインし、ログインできない場合は「パスワード再設定メールを送る」をお試しください。'
-      : 'メールの送信回数が上限に達しました。しばらく待ってから再度お試しください。';
+      ? 'メール確認なしの登録設定が適用されていません。管理者に設定を依頼してください。'
+      : '認証の利用回数が上限に達しました。しばらく待ってから再度お試しください。';
   }
   if (code.includes('rate_limit') || message.includes('rate limit')) {
     return '短時間に操作が集中しています。しばらく待ってから再度お試しください。';
   }
   if (code.includes('email_not_confirmed') || message.includes('email not confirmed')) {
-    return 'メールアドレスの確認がまだ完了していません。登録時に届いたメールをご確認ください。見つからない場合は、時間をおいて再度アカウント登録をお試しください。';
+    return 'このアカウントはメール確認が未完了です。管理者に確認状態の更新を依頼してください。';
   }
   if (mode === 'signup' && (code.includes('already') || message.includes('already registered'))) {
-    return 'このメールアドレスはすでに登録されています。「登録済みの方はこちら（ログイン）」からログインしてください。パスワードを忘れた場合は、本人確認メールをお送りします。';
+    return 'このメールアドレスは登録済みです。「ログイン」を選んでください。パスワードを忘れた場合は、管理者にリセットを依頼してください。';
   }
   if (code.includes('invalid_credentials') || message.includes('invalid login credentials')) {
     const storedAccounts = getStoredAccounts();
     const hasLegacyAccount = Array.isArray(storedAccounts)
       && storedAccounts.some((account) => getSafeEmail(account.email) === getSafeEmail(authEmailInput.value));
     return hasLegacyAccount
-      ? 'メールアドレスまたはパスワードをご確認ください。以前のレシピタで登録し、新しいアカウントをまだ作っていない場合は、「初めての方はこちら（新規登録）」から同じメールアドレスでお試しください。'
-      : 'メールアドレスまたはパスワードをご確認ください。入力に誤りがない場合は、「パスワードを忘れた方」から本人確認へお進みください。';
+      ? 'メールアドレスまたはパスワードをご確認ください。以前のレシピタで登録した方は、「新規登録」から同じメールアドレスでお試しください。'
+      : 'メールアドレスまたはパスワードをご確認ください。パスワードを忘れた場合は、管理者にリセットを依頼してください。';
   }
   return 'ログインできませんでした。入力内容と通信状態を確認して、もう一度お試しください。';
 }
@@ -301,7 +297,7 @@ function renderMypageProfile() {
   const user = getCurrentUser();
   if (!user) {
     mypageCreatedAt.textContent = '未設定';
-    mypageEmailInput.value = '';
+    mypageEmailDisplay.textContent = '';
     mypageCurrentPasswordInput.value = '';
     mypageNewPasswordInput.value = '';
     mypageNewPasswordConfirmInput.value = '';
@@ -309,7 +305,7 @@ function renderMypageProfile() {
   }
 
   mypageCreatedAt.textContent = formatCreatedAt(user.createdAt);
-  mypageEmailInput.value = user.email;
+  mypageEmailDisplay.textContent = user.email;
   mypageCurrentPasswordInput.value = '';
   mypageNewPasswordInput.value = '';
   mypageNewPasswordConfirmInput.value = '';
@@ -320,7 +316,6 @@ function setAuthMode(nextMode) {
   authMode = nextMode;
   const isDeveloperMode = nextMode === 'developer';
   authForm.hidden = false;
-  passwordRecoveryForm.hidden = true;
   emailField.hidden = isDeveloperMode;
   emailField.classList.remove('hidden');
   authEmailInput.required = !isDeveloperMode;
@@ -334,128 +329,19 @@ function setAuthMode(nextMode) {
     ? '開発者パスワード'
     : nextMode === 'signup' ? 'パスワード（6文字以上）' : 'パスワード';
   authForm.noValidate = false;
-  authSubmitButton.textContent = isDeveloperMode ? '開発者ログイン' : nextMode === 'signin' ? 'ログイン' : '無料で新規登録';
-  authSwitchButton.hidden = isDeveloperMode;
-  authSwitchButton.textContent = nextMode === 'signin'
-    ? '初めての方はこちら（新規登録）'
-    : '登録済みの方はこちら（ログイン）';
-  resetPasswordButton.hidden = isDeveloperMode || nextMode !== 'signin';
+  authSubmitButton.textContent = isDeveloperMode
+    ? '開発者ログイン'
+    : nextMode === 'signin' ? 'ログインして続ける' : 'アカウントを作成';
+  authModeSwitch.hidden = isDeveloperMode;
+  authModeSigninButton.setAttribute('aria-pressed', String(nextMode === 'signin'));
+  authModeSignupButton.setAttribute('aria-pressed', String(nextMode === 'signup'));
   devLoginButton.hidden = isDeveloperMode;
   authBackButton.hidden = !isDeveloperMode;
   authMessage.textContent = nextMode === 'developer'
     ? '開発者専用パスワードを入力してください。'
     : nextMode === 'signin'
-      ? '登録済みの方はこちら。メールアドレスとパスワードを入力してログインしてください。'
-      : '初めての方はこちら。メールアドレスと6文字以上のパスワードで登録できます。';
-}
-
-async function requestPasswordReset() {
-  const email = getSafeEmail(authEmailInput.value);
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    authMessage.textContent = '登録したメールアドレスを入力してください。';
-    authEmailInput.focus();
-    return;
-  }
-  if (!supabaseClient) {
-    authMessage.textContent = 'ただいま本人確認を利用できません。時間をおいて再度お試しください。';
-    return;
-  }
-
-  resetPasswordButton.disabled = true;
-  resetPasswordButton.textContent = '送信しています...';
-  authMessage.textContent = '本人確認のメールを送信しています...';
-  try {
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) throw error;
-    authMessage.textContent = 'このメールアドレスが登録済みの場合、本人確認の案内をお送りします。メールのリンクから新しいパスワードを設定してください。届かない場合は迷惑メールをご確認ください。';
-  } catch (error) {
-    console.error('本人確認メールを送信できませんでした', error);
-    const code = String(error?.code || '').toLowerCase();
-    const message = String(error?.message || '').toLowerCase();
-    authMessage.textContent = code.includes('rate_limit') || message.includes('rate limit')
-      ? 'メールの送信回数が上限に達しました。しばらく待ってから再度お試しください。'
-      : '本人確認メールを送信できませんでした。メールアドレスをご確認のうえ、時間をおいて再度お試しください。';
-  } finally {
-    resetPasswordButton.disabled = false;
-    resetPasswordButton.textContent = '本人確認メールを送る';
-  }
-}
-
-async function handlePasswordRecoverySubmit(event) {
-  event.preventDefault();
-  const password = recoveryPasswordInput.value.trim();
-  if (password.length < 6) {
-    passwordRecoveryMessage.textContent = '新しいパスワードは6文字以上で入力してください。';
-    return;
-  }
-  if (password !== recoveryPasswordConfirmInput.value) {
-    passwordRecoveryMessage.textContent = '新しいパスワードが確認用と一致しません。';
-    return;
-  }
-  if (!supabaseClient) {
-    passwordRecoveryMessage.textContent = 'ただいまパスワードを更新できません。時間をおいて再度お試しください。';
-    return;
-  }
-
-  const submitButton = document.getElementById('save-recovery-password-btn');
-  submitButton.disabled = true;
-  passwordRecoveryMessage.textContent = 'パスワードを更新しています...';
-  try {
-    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-    if (sessionError) throw sessionError;
-    if (!sessionData.session?.user) {
-      passwordRecoveryMessage.textContent = '再設定リンクが無効または期限切れです。ログイン画面からもう一度お手続きください。';
-      return;
-    }
-
-    const { data, error } = await supabaseClient.auth.updateUser({ password });
-    if (error) throw error;
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-    passwordRecoveryForm.reset();
-    passwordRecoveryActive = false;
-    setCurrentUser({
-      id: data.user.id,
-      email: data.user.email,
-      createdAt: data.user.created_at,
-      role: 'user'
-    });
-    setStoredCurrentUser(getCurrentUser());
-    passwordRecoveryForm.hidden = true;
-    authForm.hidden = false;
-    completeSuccessfulLogin(getCurrentUser());
-  } catch (error) {
-    console.error('パスワードを更新できませんでした', error);
-    passwordRecoveryMessage.textContent = getAuthErrorMessage(error, 'signin');
-  } finally {
-    submitButton.disabled = false;
-  }
-}
-
-function showPasswordRecoveryView() {
-  passwordRecoveryActive = true;
-  authView.hidden = false;
-  appShell.hidden = true;
-  authForm.hidden = true;
-  passwordRecoveryForm.hidden = false;
-  passwordRecoveryMessage.textContent = '新しいパスワードを入力してください。';
-  recoveryPasswordInput.focus();
-}
-
-function handlePasswordRecoveryRedirect() {
-  const hashParams = new URLSearchParams(window.location.hash.slice(1));
-  if (hashParams.has('error')) {
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-    setAuthMode('signin');
-    showAuthView('本人確認リンクが無効または期限切れです。「パスワードを忘れた方」からもう一度お手続きください。');
-    return true;
-  }
-
-  if (hashParams.get('type') === 'recovery') {
-    showPasswordRecoveryView();
-    return true;
-  }
-  return false;
+      ? '登録済みの方はメールアドレスとパスワードでログインしてください。'
+      : '新規登録ではメールアドレスをログインIDとして登録します。メール確認は行いません。';
 }
 
 function showAuthView(message = '') {
@@ -555,7 +441,6 @@ function handleSupermarketSubmit(event) {
     renderSupermarketPins();
     return;
   }
-  const name = supermarketNameInput.value.trim();
   const name = supermarketNameInput.value.trim();
   const note = supermarketNoteInput.value.trim();
   if (!name || !note) {
@@ -657,7 +542,7 @@ async function handleAuthSubmit(event) {
     const authSession = request.data?.session;
     const authUser = authSession?.user || request.data?.user;
     if (authMode === 'signup' && authUser && !authSession) {
-      authMessage.textContent = '登録確認が必要です。登録時に届いたメールをご確認ください。メールが見つからない場合は、時間をおいて再度お試しください。';
+      authMessage.textContent = 'メール確認なしの登録設定が適用されていません。管理者に設定を依頼してください。';
       return;
     }
 
@@ -920,15 +805,9 @@ async function handleMypageSubmit(event) {
     return;
   }
 
-  const nextEmail = mypageEmailInput.value.trim();
   const currentPassword = mypageCurrentPasswordInput.value.trim();
   const newPassword = mypageNewPasswordInput.value.trim();
   const passwordConfirm = mypageNewPasswordConfirmInput.value.trim();
-
-  if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
-    mypageMessage.textContent = '正しいメールアドレスを入力してください。';
-    return;
-  }
 
   if (!currentPassword) {
     mypageMessage.textContent = '現在のパスワードを入力してください。';
@@ -945,13 +824,10 @@ async function handleMypageSubmit(event) {
     return;
   }
 
-  const normalizedNextEmail = getSafeEmail(nextEmail);
-  const emailChanged = normalizedNextEmail !== getSafeEmail(user.email);
   const updates = {};
-  if (emailChanged) updates.email = normalizedNextEmail;
   if (newPassword) updates.password = newPassword;
   if (!Object.keys(updates).length) {
-    mypageMessage.textContent = '変更するメールアドレスか新しいパスワードを入力してください。';
+    mypageMessage.textContent = '新しいパスワードを入力してください。';
     return;
   }
 
@@ -988,9 +864,7 @@ async function handleMypageSubmit(event) {
     setStoredCurrentUser(updatedUser);
     syncCurrentUserBadge();
     renderMypageProfile();
-    mypageMessage.textContent = emailChanged && updatedUser.email === user.email
-      ? 'メールアドレス変更の確認メールを送信しました。メール内のリンクから変更を完了してください。'
-      : 'アカウント情報を更新しました。';
+    mypageMessage.textContent = 'パスワードを更新しました。';
   } catch (error) {
     console.error('アカウント情報を更新できませんでした', error);
     mypageMessage.textContent = error?.message || 'アカウント情報を更新できませんでした。時間をおいて再度お試しください。';
@@ -2202,8 +2076,6 @@ function addBookmark(plan) {
 }
 
 async function initializeAuthFlow() {
-  if (handlePasswordRecoveryRedirect() || passwordRecoveryActive) return;
-
   try {
     legacyPasswordCleanupFailed = !removeLegacyStoredPasswords();
   } catch (error) {
@@ -2574,8 +2446,6 @@ resultPanel.addEventListener('keydown', (event) => {
 });
 
 authForm.addEventListener('submit', handleAuthSubmit);
-passwordRecoveryForm.addEventListener('submit', handlePasswordRecoverySubmit);
-resetPasswordButton.addEventListener('click', requestPasswordReset);
 supermarketForm.addEventListener('submit', handleSupermarketSubmit);
 supermarketPinsElement.addEventListener('click', (event) => {
   const removeButton = event.target.closest('[data-remove-supermarket]');
@@ -2587,8 +2457,12 @@ supermarketPinsElement.addEventListener('click', (event) => {
   supermarketMessage.textContent = 'ピン留めを解除しました。';
   renderSupermarketPins();
 });
-authSwitchButton.addEventListener('click', () => {
-  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+authModeSigninButton.addEventListener('click', () => {
+  setAuthMode('signin');
+  authEmailInput.focus();
+});
+authModeSignupButton.addEventListener('click', () => {
+  setAuthMode('signup');
   authEmailInput.focus();
 });
 devLoginButton.addEventListener('click', handleDeveloperLogin);
@@ -2613,10 +2487,6 @@ document.addEventListener('click', (event) => {
   if (toggleButton) {
     togglePasswordVisibility(event);
   }
-});
-
-supabaseClient?.auth.onAuthStateChange((event) => {
-  if (event === 'PASSWORD_RECOVERY') showPasswordRecoveryView();
 });
 
 form.addEventListener('submit', (event) => {

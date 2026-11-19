@@ -157,70 +157,6 @@ body {
   min-width: 140px;
 }
 
-.auth-login-help {
-  border: 1px solid rgba(239, 124, 83, 0.2);
-  border-radius: 12px;
-  background: #fffaf6;
-}
-
-.auth-login-help summary {
-  padding: 11px 14px;
-  color: var(--accent-deep);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.auth-login-help-content {
-  display: grid;
-  gap: 10px;
-  padding: 0 14px 14px;
-}
-
-.auth-login-help-content p,
-.password-recovery-heading p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.65;
-}
-
-.auth-login-help-note {
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.auth-reset-password-btn {
-  justify-self: start;
-  padding: 9px 12px;
-  border: 1px solid rgba(239, 124, 83, 0.45);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--accent-deep);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.password-recovery-heading h2 {
-  margin: 0 0 6px;
-  font-size: 1.25rem;
-}
-
-.auth-reset-password-btn:hover {
-  background: #fff3e9;
-  color: var(--accent-strong);
-}
-
-.auth-reset-password-btn:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.auth-login-help summary:focus-visible,
-.auth-reset-password-btn:focus-visible {
-  outline: 3px solid rgba(239, 124, 83, 0.35);
-  outline-offset: 2px;
-}
-
 .auth-dev-actions {
   margin-top: -2px;
 }
@@ -4191,4 +4127,66 @@ body {
   .console-publish-btn {
     width: 100%;
   }
+}
+
+.auth-card {
+  width: min(100%, 460px);
+}
+
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #f0dfd1;
+  border-radius: 14px;
+  background: #fff8f2;
+}
+
+.auth-mode-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.auth-mode-btn[aria-pressed="true"] {
+  background: white;
+  color: var(--accent-deep);
+  box-shadow: 0 2px 8px rgba(50, 62, 55, 0.1);
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 0;
+}
+
+.auth-actions button {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  font-size: 1rem;
+}
+
+.account-login-id {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffaf6;
+}
+
+.account-login-id span,
+.account-login-id small {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.account-login-id strong {
+  overflow-wrap: anywhere;
 }
