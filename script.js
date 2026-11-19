@@ -568,6 +568,12 @@ function formatShortVideoDate(value) {
 
 const shortVideoObservers = new WeakMap();
 
+function getShortVideoAudioIcon(isMuted) {
+  return isMuted
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM16 9l5 6m0-6-5 6" /></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15 9a5 5 0 0 1 0 6m3-9a9 9 0 0 1 0 12" /></svg>';
+}
+
 function renderShortVideos(videos, feed) {
   if (!videos.length) {
     feed.innerHTML = '<p class="empty-message shorts-empty">動画はまだありません。右上の＋から最初の動画を投稿できます。</p>';
@@ -596,13 +602,13 @@ function renderShortVideos(videos, feed) {
         <video class="short-video-player" src="${escapeHtml(publicUrl)}" controls playsinline muted loop preload="metadata" aria-label="${escapeHtml(caption)}"></video>
         <div class="short-video-action-rail">
           <div class="short-video-volume-control">
-            <button type="button" class="short-video-mute-btn" data-short-video-mute aria-label="音声をオンにする" aria-pressed="false">🔇</button>
+            <button type="button" class="short-video-mute-btn" data-short-video-mute aria-label="音声をオンにする" aria-pressed="false">${getShortVideoAudioIcon(true)}</button>
             <input type="range" min="0" max="1" step="0.05" value="0.7" data-short-video-volume aria-label="音量" />
           </div>
-          <button type="button" class="short-video-comments-toggle" data-short-video-comments-toggle aria-expanded="false" aria-label="コメントを表示">💬</button>
+          <button type="button" class="short-video-comments-toggle" data-short-video-comments-toggle aria-expanded="false" aria-label="コメントを表示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.4-.8L4 20l1.5-4A7.5 7.5 0 1 1 20 11.5Z" /></svg></button>
         </div>
         <div class="short-video-caption">
-          <span class="short-video-avatar" aria-hidden="true">🍳</span>
+          <span class="short-video-avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4.5" /></svg></span>
           <p><strong>${escapeHtml(caption)}</strong><span>${escapeHtml(formatShortVideoDate(video.created_at))}</span></p>
           ${deleteButton}
         </div>
@@ -732,7 +738,7 @@ async function handleShortsFeedClick(event) {
   if (target.matches('[data-short-video-mute]')) {
     const video = card.querySelector('.short-video-player');
     video.muted = !video.muted;
-    target.textContent = video.muted ? '🔇' : '🔊';
+    target.innerHTML = getShortVideoAudioIcon(video.muted);
     target.setAttribute('aria-label', video.muted ? '音声をオンにする' : '音声をミュート');
     target.setAttribute('aria-pressed', String(!video.muted));
     return;
@@ -825,7 +831,7 @@ function handleShortsFeedInput(event) {
 
   video.volume = Number(slider.value);
   video.muted = video.volume === 0;
-  muteButton.textContent = video.muted ? '🔇' : '🔊';
+  muteButton.innerHTML = getShortVideoAudioIcon(video.muted);
   muteButton.setAttribute('aria-label', video.muted ? '音声をオンにする' : '音声をミュート');
   muteButton.setAttribute('aria-pressed', String(!video.muted));
 }
@@ -2627,7 +2633,7 @@ function renderBookmarks() {
   if (!bookmarks.length) {
     bookmarksList.innerHTML = `
       <div class="bookmark-empty-state">
-        <span class="bookmark-empty-icon" aria-hidden="true">🔖</span>
+        <span class="bookmark-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4z" /></svg></span>
         <h3>登録しているものはありません。</h3>
         <p>献立を作成して、気に入ったものをブックマークしてみましょう。</p>
       </div>
@@ -3145,6 +3151,9 @@ form.addEventListener('submit', (event) => {
   const plan = createPlan(values);
   renderPlan(plan);
   saveHistory(plan);
+  if (window.matchMedia('(max-width: 700px)').matches) {
+    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 });
 
 initializeAuthFlow();

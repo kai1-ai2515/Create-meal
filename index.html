@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="assets/recipita-mark.webp" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20261119-shorts-reels" />
   </head>
   <body>
@@ -75,33 +75,45 @@
           </a>
           <p class="sidebar-section-label">MENU</p>
           <nav class="utility-nav" aria-label="便利機能">
+            <a class="utility-icon-btn utility-home-link" href="#meal-form" aria-label="献立作成へ" title="献立作成へ">
+              <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" /></svg></span>
+              <span class="utility-label">献立を作る</span>
+            </a>
             <button id="open-fridge-btn" class="utility-icon-btn" type="button" aria-label="冷蔵庫レスキューを開く" title="冷蔵庫レスキューを開く">
-              <span class="utility-symbol" aria-hidden="true">🧊</span>
+              <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1" /><path d="M5 11h14M9 7v2m0 5v3" /></svg></span>
               <span class="utility-label">冷蔵庫</span>
             </button>
-            <button id="open-shorts-btn" class="utility-icon-btn" type="button" aria-label="ショート動画を開く" title="ショート動画を開く">
-              <span class="utility-symbol" aria-hidden="true">🎬</span>
-              <span class="utility-label">動画</span>
-            </button>
             <button id="open-shopping-btn" class="utility-icon-btn" type="button" aria-label="買い物メモを開く" title="買い物メモを開く">
-              <span class="utility-symbol" aria-hidden="true">🛒</span>
+              <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L22 8H6" /><circle cx="10" cy="20" r="1" /><circle cx="18" cy="20" r="1" /></svg></span>
               <span class="utility-label">買い物</span>
             </button>
-            <button id="open-history-btn" class="utility-icon-btn" type="button" aria-label="献立履歴を開く" title="献立履歴を開く">
-              <span class="utility-symbol" aria-hidden="true">🕘</span>
-              <span class="utility-label">履歴</span>
-              <span id="history-count" class="utility-count">0</span>
-            </button>
-            <button id="open-announcements-btn" class="utility-icon-btn" type="button" aria-label="お知らせを開く" title="お知らせを開く">
-              <span class="utility-symbol" aria-hidden="true">📢</span>
-              <span class="utility-label">お知らせ</span>
-              <span id="announcement-count" class="utility-count" hidden>0</span>
-            </button>
-            <button id="open-bookmarks-btn" class="utility-icon-btn" type="button" aria-label="ブックマークを開く" title="ブックマークを開く">
-              <span class="utility-symbol" aria-hidden="true">🔖</span>
-              <span class="utility-label">保存</span>
-              <span id="bookmark-count" class="utility-count">0</span>
-            </button>
+            <details class="utility-more">
+              <summary class="utility-icon-btn" aria-label="その他のメニュー" title="その他のメニュー">
+                <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg></span>
+                <span class="utility-label">その他</span>
+              </summary>
+              <div class="utility-more-items">
+                <button id="open-shorts-btn" class="utility-icon-btn" type="button" aria-label="ショート動画を開く" title="ショート動画を開く">
+                  <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" /><path d="m10 8 5 4-5 4z" /></svg></span>
+                  <span class="utility-label">動画</span>
+                </button>
+                <button id="open-history-btn" class="utility-icon-btn" type="button" aria-label="献立履歴を開く" title="献立履歴を開く">
+                  <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" /><path d="M3 3v5h5m4-1v5l3 2" /></svg></span>
+                  <span class="utility-label">履歴</span>
+                  <span id="history-count" class="utility-count">0</span>
+                </button>
+                <button id="open-announcements-btn" class="utility-icon-btn" type="button" aria-label="お知らせを開く" title="お知らせを開く">
+                  <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 14V9a2 2 0 0 1 2-2h3l8-4v17l-8-4H6a2 2 0 0 1-2-2Zm5 2 1.5 5h3L12 16" /><path d="M20 9v5" /></svg></span>
+                  <span class="utility-label">お知らせ</span>
+                  <span id="announcement-count" class="utility-count" hidden>0</span>
+                </button>
+                <button id="open-bookmarks-btn" class="utility-icon-btn" type="button" aria-label="ブックマークを開く" title="ブックマークを開く">
+                  <span class="utility-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4z" /></svg></span>
+                  <span class="utility-label">保存</span>
+                  <span id="bookmark-count" class="utility-count">0</span>
+                </button>
+              </div>
+            </details>
           </nav>
           <div class="sidebar-account">
             <div class="user-chip">
@@ -135,6 +147,8 @@
         <p class="hero-text">
           忙しい毎日のために、初心者でも作りやすい献立と、必要な材料・手順をすぐ確認できるようにします。
         </p>
+        <details class="home-health-details">
+          <summary><span>健康マスター・食事記録</span><span class="health-details-indicator" aria-hidden="true">＋</span></summary>
         <section class="health-master" aria-labelledby="health-master-title">
           <div class="health-master-heading">
             <div>
@@ -187,6 +201,7 @@
             <p>参考: Schwingshackl et al., <cite>American Journal of Clinical Nutrition</cite>, 2017, DOI: 10.3945/ajcn.117.153148</p>
           </details>
         </section>
+        </details>
       </header>
 
       <section class="panel supermarket-panel" aria-labelledby="supermarket-title">
@@ -303,7 +318,7 @@
         <h2>ブックマーク済み献立</h2>
         <div id="bookmarks-list" class="bookmarks-list">
           <div class="bookmark-empty-state">
-            <span class="bookmark-empty-icon" aria-hidden="true">🔖</span>
+            <span class="bookmark-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4z" /></svg></span>
             <h3>登録しているものはありません。</h3>
             <p>献立を作成して、気に入ったものをブックマークしてみましょう。</p>
           </div>

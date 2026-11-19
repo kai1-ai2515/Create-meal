@@ -4598,6 +4598,487 @@ body {
   overflow-wrap: anywhere;
 }
 
+:root {
+  --bg: #f7f5f6;
+  --bg-soft: #fff7f5;
+  --panel: #fff;
+  --accent: #e87963;
+  --accent-strong: #d75f73;
+  --accent-deep: #a63d58;
+  --mint: #e5f1eb;
+  --mint-strong: #72a98a;
+  --text: #302d30;
+  --muted: #777178;
+  --border: #e9e3e5;
+  --shadow: rgba(57, 42, 48, 0.08);
+}
+
+body {
+  font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
+  background: #f7f5f6;
+}
+
+.app-shell {
+  width: min(100%, 1500px);
+  padding: 18px 28px 40px;
+}
+
+.app-layout {
+  grid-template-columns: 210px minmax(0, 900px);
+  gap: 30px;
+}
+
+.app-sidebar {
+  border-color: #e8e1e4;
+}
+
+.brand-mark {
+  margin-bottom: 28px;
+}
+
+.brand-logo {
+  width: min(100%, 180px);
+}
+
+.utility-icon-btn,
+.mypage-btn {
+  min-height: 46px;
+  border-radius: 6px;
+  color: #39343a;
+}
+
+.utility-icon-btn:hover,
+.mypage-btn:hover {
+  border-color: #f0d7dc;
+  background: #fff7f8;
+  box-shadow: none;
+}
+
+.utility-symbol svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.utility-more {
+  position: relative;
+}
+
+.utility-more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.utility-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.utility-more-items {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 5px);
+  left: 0;
+  display: grid;
+  width: 100%;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid #e9e3e5;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(57, 42, 48, 0.14);
+}
+
+.hero {
+  order: 1;
+  margin: 0 0 12px;
+  padding: 6px 2px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hero h1 {
+  margin: 0 0 4px;
+  color: #343036;
+  font-size: 1.65rem;
+}
+
+.hero-text {
+  max-width: 720px;
+  margin: 0;
+  color: #716a71;
+}
+
+.home-health-details {
+  margin-top: 12px;
+}
+
+.home-health-details > summary {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 11px;
+  border: 1px solid #eadfe2;
+  border-radius: 6px;
+  background: #fff;
+  color: #62545a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  list-style: none;
+  cursor: pointer;
+}
+
+.home-health-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.health-details-indicator {
+  color: var(--accent-deep);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.home-health-details[open] .health-details-indicator {
+  transform: rotate(45deg);
+}
+
+.home-health-details .health-master {
+  margin-top: 8px;
+}
+
+.content {
+  order: 2;
+  grid-template-columns: minmax(260px, 0.86fr) minmax(0, 1.14fr);
+  align-items: start;
+  gap: 12px;
+  scroll-margin-top: 16px;
+}
+
+.panel,
+.health-master,
+.supermarket-card,
+.short-video-comments,
+.short-video-caption {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.panel {
+  border-color: #e8e2e5;
+}
+
+.controls,
+.result {
+  min-width: 0;
+  background: #fff;
+}
+
+.controls h2,
+.result h2 {
+  margin-bottom: 14px;
+  font-size: 1.05rem;
+}
+
+#meal-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+#meal-form label {
+  min-width: 0;
+  gap: 5px;
+  color: #625b62;
+  font-size: 0.8rem;
+}
+
+#meal-form select,
+#meal-form input {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border-color: #e7e1e4;
+  background: #fcfafb;
+  font: inherit;
+  font-size: 0.86rem;
+}
+
+#meal-form > button[type="submit"] {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  margin-top: 2px;
+  border-radius: 5px;
+  background: var(--accent-strong);
+  box-shadow: none;
+}
+
+#meal-form > button[type="submit"]:hover {
+  background: #c94f66;
+  box-shadow: none;
+}
+
+.result {
+  min-height: 0;
+  scroll-margin-top: 18px;
+}
+
+.placeholder {
+  min-height: 148px;
+  padding: 18px;
+  border: 1px dashed #e6dce0;
+  border-radius: 5px;
+  background: #fcfafb;
+}
+
+.placeholder h2 {
+  margin-bottom: 6px;
+  font-size: 0.98rem;
+}
+
+.placeholder p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.recipe-search-panel {
+  order: 3;
+  margin-top: 12px;
+}
+
+.supermarket-panel {
+  order: 4;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.health-master {
+  border-color: #eadfe2;
+  background: #fffafb;
+}
+
+.short-video-volume-control {
+  grid-template-columns: 42px minmax(76px, 104px);
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(16, 17, 15, 0.78);
+}
+
+.short-video-mute-btn,
+.short-video-comments-toggle {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.short-video-mute-btn svg,
+.short-video-comments-toggle svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.short-video-volume-control .short-video-mute-btn {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.short-video-volume-control input {
+  width: 100%;
+  min-width: 0;
+  accent-color: #f28a85;
+}
+
+.bookmark-empty-icon svg,
+.short-video-avatar svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.bookmark-empty-icon {
+  color: var(--accent-deep);
+}
+
+.short-video-avatar {
+  color: #555057;
+}
+
+.short-video-caption {
+  border-radius: 5px;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-color: rgba(215, 95, 115, 0.42);
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 188px minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 700px) {
+  .app-shell {
+    padding: 12px 12px calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .app-sidebar {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    padding: 6px max(10px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    border-top-color: #e8e1e4;
+    box-shadow: 0 -4px 16px rgba(57, 42, 48, 0.07);
+  }
+
+  .utility-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .utility-icon-btn {
+    min-height: 52px;
+    gap: 1px;
+    padding: 4px 2px;
+    border-radius: 5px;
+  }
+
+  .utility-symbol svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .utility-label {
+    font-size: 0.62rem;
+  }
+
+  .utility-more-items {
+    top: auto;
+    right: 0;
+    bottom: calc(100% + 8px);
+    left: auto;
+    width: min(260px, calc(100vw - 20px));
+    padding: 7px;
+    box-shadow: 0 8px 24px rgba(57, 42, 48, 0.16);
+  }
+
+  .utility-more-items .utility-icon-btn {
+    display: flex;
+    min-height: 44px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 7px 10px;
+  }
+
+  .utility-more-items .utility-label {
+    font-size: 0.82rem;
+  }
+
+  .utility-count {
+    top: 0;
+    right: 0;
+  }
+
+  .sidebar-account {
+    padding: 0;
+  }
+
+  .mypage-btn {
+    width: 42px;
+    min-height: 48px;
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .hero {
+    padding: 3px 1px 8px;
+  }
+
+  .hero h1 {
+    font-size: 1.4rem;
+  }
+
+  .hero-text {
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  #meal-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .controls,
+  .result,
+  .panel {
+    padding: 14px;
+  }
+
+  .result {
+    scroll-margin-top: 12px;
+  }
+
+  .placeholder {
+    min-height: 112px;
+    padding: 14px;
+  }
+
+  .recipe-search-panel,
+  .supermarket-panel {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-shell {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .utility-label {
+    font-size: 0.56rem;
+  }
+
+  #meal-form select,
+  #meal-form input {
+    font-size: 0.8rem;
+  }
+}
+
 .mypage-btn .account-nav-icon {
   width: 21px;
   height: 21px;
