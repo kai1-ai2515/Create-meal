@@ -22,6 +22,7 @@ const shortsVideoInput = document.getElementById('shorts-video-file');
 const shortsCaptionInput = document.getElementById('shorts-video-caption');
 const shortsUploadButton = document.getElementById('shorts-upload-btn');
 const shortsUploadMessage = document.getElementById('shorts-upload-message');
+const shortsUploadProgress = document.getElementById('shorts-upload-progress');
 const shortVideoBucket = 'cooking-videos';
 const maxShortVideoSize = 50 * 1024 * 1024;
 const maxShortVideoDuration = 180;
@@ -527,11 +528,14 @@ function getShortVideoDuration(file) {
 
 function getShortVideoErrorMessage(error) {
   const message = String(error?.message || '');
-  if (Number(error?.statusCode || error?.status) === 413 || /payload too large|file size limit/i.test(message)) {
+  if (Number(error?.statusCode || error?.status) === 413 || /\b413\b|payload too large|file size limit/i.test(message)) {
     return '動画の容量上限を超えています。50MB以下の動画を選択してください。';
   }
   if (/bucket not found|short_videos.*(not found|does not exist|schema cache|could not find)|row-level security/i.test(message)) {
     return '動画投稿のSupabase設定が未完了です。管理者にお問い合わせください。';
+  }
+  if (/failed to fetch|network|connection|tus: unexpected response/i.test(message)) {
+    return 'アップロードが中断しました。通信を確認し、同じ動画を選んで再試行してください。続きから再開できる場合があります。';
   }
   return message || '動画を処理できませんでした。通信状態を確認して、もう一度お試しください。';
 }
@@ -599,6 +603,61 @@ async function loadShortVideos() {
   }
 }
 
+async function uploadShortVideoResumable(file, storagePath, mimeType, userId, onProgress) {
+  const TusUpload = window.tus?.Upload;
+  const config = window.MEAL_SUPABASE_CONFIG;
+  if (!TusUpload || !config?.url || !config.anonKey) {
+    throw new Error('動画アップロード機能を読み込めません。ページを再読み込みしてください。');
+  }
+
+  const projectId = new URL(config.url).hostname.split('.')[0];
+  const { data, error } = await supabaseClient.auth.getSession();
+  if (error) throw error;
+  if (!data.session?.access_token) {
+    throw new Error('ログインの有効期限が切れました。もう一度ログインしてください。');
+  }
+
+  return new Promise((resolve, reject) => {
+    let completedStoragePath = storagePath;
+    const upload = new TusUpload(file, {
+      endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${data.session.access_token}`,
+        apikey: config.anonKey
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: 6 * 1024 * 1024,
+      metadata: {
+        bucketName: shortVideoBucket,
+        objectName: storagePath,
+        contentType: mimeType,
+        cacheControl: '3600'
+      },
+      onError: reject,
+      onProgress: (bytesUploaded, bytesTotal) => {
+        onProgress(bytesUploaded, bytesTotal);
+      },
+      onSuccess: () => resolve(completedStoragePath)
+    });
+
+    upload.findPreviousUploads()
+      .then((previousUploads) => {
+        const previousUpload = previousUploads.find(({ metadata }) =>
+          metadata?.bucketName === shortVideoBucket
+          && metadata.objectName?.startsWith(`${userId}/`)
+        );
+        if (previousUpload) {
+          completedStoragePath = previousUpload.metadata.objectName;
+          upload.resumeFromPreviousUpload(previousUpload);
+        }
+        upload.start();
+      })
+      .catch(reject);
+  });
+}
+
 async function handleShortVideoUpload(event) {
   event.preventDefault();
   const user = getCurrentUser();
@@ -631,24 +690,29 @@ async function handleShortVideoUpload(event) {
 
     shortsUploadMessage.textContent = '動画をアップロードしています...';
     const storagePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
-    const { data: uploadedFile, error: uploadError } = await supabaseClient.storage
-      .from(shortVideoBucket)
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        contentType: mimeType,
-        upsert: false
-      });
-    if (uploadError) throw uploadError;
+    shortsUploadProgress.hidden = false;
+    shortsUploadProgress.value = 0;
+    const uploadedStoragePath = await uploadShortVideoResumable(
+      file,
+      storagePath,
+      mimeType,
+      user.id,
+      (bytesUploaded, bytesTotal) => {
+        const percentage = Math.min(100, Math.floor((bytesUploaded / bytesTotal) * 100));
+        shortsUploadProgress.value = percentage;
+        shortsUploadMessage.textContent = `動画をアップロードしています... ${percentage}%`;
+      }
+    );
 
     const { error: insertError } = await supabaseClient
       .from('short_videos')
       .insert({
         user_id: user.id,
-        storage_path: uploadedFile.path,
+        storage_path: uploadedStoragePath,
         caption: shortsCaptionInput.value.trim()
       });
     if (insertError) {
-      const { error: cleanupError } = await supabaseClient.storage.from(shortVideoBucket).remove([uploadedFile.path]);
+      const { error: cleanupError } = await supabaseClient.storage.from(shortVideoBucket).remove([uploadedStoragePath]);
       if (cleanupError) {
         console.error('投稿に失敗した動画ファイルを削除できませんでした', cleanupError);
         throw new Error('投稿に失敗し、アップロード済み動画の削除にも失敗しました。管理者にお問い合わせください。');
@@ -657,6 +721,8 @@ async function handleShortVideoUpload(event) {
     }
 
     shortsUploadForm.reset();
+    shortsUploadProgress.hidden = true;
+    shortsUploadProgress.value = 0;
     shortsUploadMessage.textContent = '投稿しました。動画ページで公開されています。';
     await loadShortVideos();
   } catch (error) {
