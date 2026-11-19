@@ -158,6 +158,11 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Developer authentication failed." }, 401);
   }
 
+  const resource = request.headers.get("x-developer-resource");
+  if (resource === "comments" && request.method !== "DELETE") {
+    return jsonResponse({ error: "Method not allowed for comments." }, 405);
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceRoleKey) {
@@ -167,7 +172,7 @@ Deno.serve(async (request) => {
 
   try {
     if (request.method === "GET") {
-      if (request.headers.get("x-developer-resource") === "users") {
+      if (resource === "users") {
         const users = await requestAuthUsers(supabaseUrl, serviceRoleKey);
         return jsonResponse({ users });
       }
@@ -216,7 +221,7 @@ Deno.serve(async (request) => {
       return jsonResponse({ announcement }, 201);
     }
 
-    if (request.headers.get("x-developer-resource") === "comments") {
+    if (resource === "comments") {
       const commentId = typeof payload.id === "string" ? payload.id : "";
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(commentId)) {
         return jsonResponse({ error: "Invalid comment ID." }, 400);
