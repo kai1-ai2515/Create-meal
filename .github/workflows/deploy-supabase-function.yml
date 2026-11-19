@@ -1,6 +1,12 @@
 name: 登録者一覧の準備
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/deploy-supabase-function.yml"
+      - "supabase/config.toml"
+      - "supabase/functions/developer-announcements/**"
   workflow_dispatch:
 
 permissions:
