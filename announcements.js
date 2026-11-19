@@ -159,7 +159,16 @@
       method: 'GET',
       headers: { 'x-developer-password': password }
     });
-    if (error) throw new Error('パスワードが違うか、開発者配信サーバーが未設定です。');
+    if (error) {
+      const status = error.context?.status;
+      if (status === 401) {
+        throw new Error('開発者パスワードが一致しません。SupabaseのDEVELOPER_PASSWORD設定を確認してください。');
+      }
+      if (status === 503) {
+        throw new Error('開発者配信サーバーの設定が不足しています。SupabaseのEdge Function Secretsを確認してください。');
+      }
+      throw new Error('開発者ログインに失敗しました。Edge Functionの配備状態とSupabase設定を確認してください。');
+    }
     return true;
   }
 

@@ -3341,6 +3341,185 @@ body {
   margin-left: auto;
 }
 
+.supermarket-panel {
+  margin-bottom: 14px;
+}
+
+.supermarket-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.supermarket-heading h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.supermarket-intro {
+  margin: 9px 0 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.supermarket-pins {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.supermarket-card {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #e8e7e1;
+  border-radius: 13px;
+  background: #fffefa;
+}
+
+.supermarket-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.supermarket-pin-icon {
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+
+.supermarket-store {
+  min-width: 0;
+  flex: 1;
+}
+
+.supermarket-store h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.supermarket-store p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.supermarket-remove-btn {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid #e8e7e1;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.supermarket-remove-btn:hover {
+  background: #fff2e4;
+}
+
+.supermarket-price-note {
+  min-height: 54px;
+  margin: 10px 0;
+  color: #48564d;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.supermarket-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #eeede7;
+  font-size: 0.7rem;
+}
+
+.supermarket-card-footer a {
+  color: #397a5d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.supermarket-card-footer span {
+  color: var(--muted);
+}
+
+.supermarket-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed #dedfd6;
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.supermarket-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eeede7;
+}
+
+.supermarket-form h3,
+.supermarket-form > button,
+.supermarket-message {
+  grid-column: 1 / -1;
+}
+
+.supermarket-form h3 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.supermarket-form label {
+  display: grid;
+  gap: 5px;
+  color: #56645b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.supermarket-form input,
+.supermarket-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #e5e8e1;
+  border-radius: 9px;
+  background: #fbfcfa;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.supermarket-form textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.supermarket-form > button {
+  min-height: 40px;
+}
+
+.supermarket-message {
+  min-height: 0;
+  margin: 0;
+  color: #397a5d;
+  font-size: 0.76rem;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding-right: 20px;
@@ -3480,6 +3659,14 @@ body {
 
   .panel {
     padding: 16px;
+  }
+
+  .supermarket-pins {
+    grid-template-columns: 1fr;
+  }
+
+  .supermarket-price-note {
+    min-height: 0;
   }
 }
 

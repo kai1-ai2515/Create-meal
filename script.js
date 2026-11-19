@@ -6,6 +6,12 @@ const openBookmarksButton = document.getElementById('open-bookmarks-btn');
 const closeBookmarksButton = document.getElementById('close-bookmarks-btn');
 const bookmarkCount = document.getElementById('bookmark-count');
 const plannerView = document.querySelector('.content');
+const supermarketForm = document.getElementById('supermarket-form');
+const supermarketNameInput = document.getElementById('supermarket-name');
+const supermarketNoteInput = document.getElementById('supermarket-note');
+const supermarketPinsElement = document.getElementById('supermarket-pins');
+const supermarketCount = document.getElementById('supermarket-count');
+const supermarketMessage = document.getElementById('supermarket-message');
 const bookmarksPage = document.getElementById('bookmarks-page');
 const shortsPage = document.getElementById('shorts-page');
 const openShortsButton = document.getElementById('open-shorts-btn');
@@ -487,6 +493,87 @@ function renderUserData() {
   renderHistory();
   renderHealthMaster();
   renderHealthLogs();
+  renderSupermarketPins();
+}
+
+function getSupermarketPins() {
+  const savedPins = getUserDataValue(supermarketPinsStorageKey, []);
+  if (!Array.isArray(savedPins)) return [];
+
+  return savedPins
+    .filter((pin) => pin && typeof pin === 'object')
+    .map((pin) => ({
+      name: String(pin.name || '').slice(0, 80),
+      note: String(pin.note || '').slice(0, 240),
+      updatedAt: String(pin.updatedAt || '')
+    }))
+    .filter((pin) => pin.name && pin.note)
+    .slice(0, 3);
+}
+
+function renderSupermarketPins() {
+  const pins = getSupermarketPins();
+  supermarketCount.textContent = `${pins.length} / 3 店`;
+  supermarketForm.hidden = pins.length >= 3;
+  if (pins.length >= 3 && !supermarketMessage.textContent) {
+    supermarketMessage.textContent = '3件登録済みです。入れ替える場合は、登録済みのお店を削除してください。';
+  }
+
+  if (!pins.length) {
+    supermarketPinsElement.innerHTML = '<p class="supermarket-empty">お店はまだ登録されていません。よく行くスーパーをピン留めしましょう。</p>';
+    return;
+  }
+
+  supermarketPinsElement.innerHTML = pins.map((pin, index) => {
+    const updatedAt = new Date(pin.updatedAt);
+    const dateLabel = Number.isNaN(updatedAt.getTime())
+      ? ''
+      : updatedAt.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+
+    return `
+      <article class="supermarket-card">
+        <div class="supermarket-card-heading">
+          <span class="supermarket-pin-icon" aria-hidden="true">📌</span>
+          <div class="supermarket-store">
+            <h3>${escapeHtml(pin.name)}</h3>
+          </div>
+          <button type="button" class="supermarket-remove-btn" data-remove-supermarket="${index}" aria-label="${escapeHtml(pin.name)}を削除">削除</button>
+        </div>
+        <p class="supermarket-price-note">${escapeHtml(pin.note)}</p>
+        <div class="supermarket-card-footer">
+          ${dateLabel ? `<span>${dateLabel}に更新</span>` : '<span>価格メモ</span>'}
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function handleSupermarketSubmit(event) {
+  event.preventDefault();
+  const pins = getSupermarketPins();
+  if (pins.length >= 3) {
+    renderSupermarketPins();
+    return;
+  }
+  const name = supermarketNameInput.value.trim();
+  const name = supermarketNameInput.value.trim();
+  const note = supermarketNoteInput.value.trim();
+  if (!name || !note) {
+    supermarketMessage.textContent = 'スーパー名と価格メモを入力してください。';
+    return;
+  }
+
+  pins.unshift({
+    name,
+    note,
+    updatedAt: new Date().toISOString()
+  });
+  setUserDataValue(supermarketPinsStorageKey, pins.slice(0, 3));
+  supermarketForm.reset();
+  renderSupermarketPins();
+  supermarketMessage.textContent = pins.length >= 3
+    ? '3件登録しました。入れ替える場合は、登録済みのお店を削除してください。'
+    : 'お店をピン留めしました。';
 }
 
 async function handleAuthSubmit(event) {
@@ -929,7 +1016,8 @@ function exportUserData() {
       history: getHistory(),
       shoppingChecks: getShoppingChecks(),
       healthScores: getHealthScores(),
-      eatenLogs: getEatenLogs()
+      eatenLogs: getEatenLogs(),
+      supermarketPins: getSupermarketPins()
     }
   };
 
@@ -1006,6 +1094,7 @@ const historyStorageKey = 'meal-planner-history';
 const shoppingChecksStorageKey = 'meal-planner-shopping-checks';
 const healthScoresStorageKey = 'meal-planner-health-scores';
 const eatenLogsStorageKey = 'meal-planner-eaten-logs';
+const supermarketPinsStorageKey = 'meal-planner-supermarket-pins';
 
 const mealLibrary = {
   和風: {
@@ -2487,6 +2576,17 @@ resultPanel.addEventListener('keydown', (event) => {
 authForm.addEventListener('submit', handleAuthSubmit);
 passwordRecoveryForm.addEventListener('submit', handlePasswordRecoverySubmit);
 resetPasswordButton.addEventListener('click', requestPasswordReset);
+supermarketForm.addEventListener('submit', handleSupermarketSubmit);
+supermarketPinsElement.addEventListener('click', (event) => {
+  const removeButton = event.target.closest('[data-remove-supermarket]');
+  if (!removeButton) return;
+
+  const pins = getSupermarketPins();
+  pins.splice(Number(removeButton.dataset.removeSupermarket), 1);
+  setUserDataValue(supermarketPinsStorageKey, pins);
+  supermarketMessage.textContent = 'ピン留めを解除しました。';
+  renderSupermarketPins();
+});
 authSwitchButton.addEventListener('click', () => {
   setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
   authEmailInput.focus();
