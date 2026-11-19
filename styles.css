@@ -3664,6 +3664,13 @@ body {
   font-size: 0.8rem;
 }
 
+.shorts-upload-help {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
 .shorts-upload-form textarea {
   min-height: 64px;
   resize: vertical;

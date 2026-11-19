@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20261119-short-video-upload" />
+    <link rel="stylesheet" href="styles.css?v=20261119-native-video-picker" />
   </head>
   <body>
     <div id="auth-view" class="auth-view">
@@ -349,9 +349,10 @@
         </div>
         <form id="shorts-upload-form" class="shorts-upload-form">
           <label class="shorts-upload-file-label" for="shorts-video-file">
-            動画を選択
+            スマホの写真アプリ／ギャラリーから動画を選ぶ
             <input id="shorts-video-file" type="file" accept="video/*" required />
           </label>
+          <p class="shorts-upload-help">選んだ動画だけにアクセスします。写真ライブラリ全体への許可は不要です。</p>
           <label class="shorts-upload-caption-label" for="shorts-video-caption">
             ひとこと（任意）
             <textarea id="shorts-video-caption" maxlength="300" rows="2" placeholder="料理のポイントなど"></textarea>
