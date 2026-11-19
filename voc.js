@@ -222,11 +222,11 @@
            <button type="button" class="danger-btn" data-voc-delete="${item.id}">完全削除</button>`;
       return `
         <tr>
-          <td class="voc-date-cell">${escapeHtml(formatDate(item.createdAt))}</td>
-          <td class="voc-user-cell">${escapeHtml(item.userEmail)}</td>
-          <td class="voc-content-cell"><strong>${escapeHtml(item.subject)}</strong><span class="voc-status-pill">${escapeHtml(item.category)}</span><p>${escapeHtml(item.message)}</p></td>
-          <td><span class="voc-status-pill">${escapeHtml(item.status)}</span></td>
-          <td class="voc-row-actions">${actions}</td>
+          <td class="voc-date-cell" data-label="受信日時">${escapeHtml(formatDate(item.createdAt))}</td>
+          <td class="voc-user-cell" data-label="アカウント">${escapeHtml(item.userEmail)}</td>
+          <td class="voc-content-cell" data-label="お問い合わせ"><strong>${escapeHtml(item.subject)}</strong><span class="voc-status-pill">${escapeHtml(item.category)}</span><p>${escapeHtml(item.message)}</p></td>
+          <td data-label="対応状況"><span class="voc-status-pill">${escapeHtml(item.status)}</span></td>
+          <td class="voc-row-actions" data-label="処理">${actions}</td>
         </tr>`;
     }).join('');
   }

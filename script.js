@@ -79,6 +79,8 @@ const authMessage = document.getElementById('auth-message');
 const appSecurityNotice = document.getElementById('app-security-notice');
 const currentUserName = document.getElementById('current-user-name');
 const mypageButton = document.getElementById('mypage-btn');
+const mypageDesktopLabel = document.getElementById('mypage-desktop-label');
+const mypageMobileLabel = document.getElementById('mypage-mobile-label');
 const mypagePanel = document.getElementById('mypage-panel');
 const mypageForm = document.getElementById('mypage-form');
 const mypageEmailDisplay = document.getElementById('mypage-email');
@@ -354,7 +356,10 @@ function showAuthView(message = '') {
 
 function showAppView() {
   syncCurrentUserBadge();
-  mypageButton.textContent = getCurrentUser()?.role === 'developer' ? '開発者コンソール' : 'マイページ';
+  const isDeveloper = getCurrentUser()?.role === 'developer';
+  mypageDesktopLabel.textContent = isDeveloper ? '開発者コンソール' : 'マイページ';
+  mypageMobileLabel.textContent = isDeveloper ? '管理画面' : 'アカウント';
+  mypageButton.setAttribute('aria-label', isDeveloper ? '開発者コンソールを開く' : 'アカウントを開く');
   if (legacyPasswordCleanupFailed) {
     showSecurityNotice('以前のローカルパスワードを自動削除できませんでした。ブラウザーの保存領域を確認してください。');
   }
