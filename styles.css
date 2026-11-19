@@ -3573,10 +3573,6 @@ body {
     font-size: 0;
   }
 
-  .mypage-btn span {
-    font-size: 1.2rem;
-  }
-
   .app-main {
     max-width: none;
   }
@@ -4324,24 +4320,17 @@ body {
   fill: currentColor;
 }
 
-.mypage-label-mobile {
-  display: none;
-}
-
 @media (max-width: 700px) {
   .app-sidebar {
-    grid-template-columns: minmax(0, 1fr) 64px;
+    grid-template-columns: minmax(0, 1fr) 48px;
   }
 
   .mypage-btn {
-    width: 60px;
-    min-height: 54px;
-    flex-direction: column;
-    gap: 3px;
-    padding: 4px 2px;
-    font-size: 0.58rem;
-    line-height: 1;
-    white-space: nowrap;
+    width: 44px;
+    min-height: 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 7px;
   }
 
   .mypage-btn .account-nav-icon {
@@ -4349,13 +4338,8 @@ body {
     height: 21px;
   }
 
-  .mypage-label-desktop {
+  .mypage-btn .mypage-label-desktop {
     display: none;
-  }
-
-  .mypage-label-mobile {
-    display: block;
-    font-size: 0.56rem;
   }
 
   .mypage-grid,
